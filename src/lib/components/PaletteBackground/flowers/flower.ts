@@ -1,7 +1,9 @@
 import { fixed, petalPath, transformAttr, type Placement } from './geometry.js';
 
-/** Radians between golden-angle steps; spaces seeds evenly like a sunflower head. */
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+/** The centre's dots: one in the middle, and `SEED_RING_COUNT` evenly spaced round it, in flower units. */
+export const SEED_RING_COUNT = 8;
+export const SEED_RING_DISTANCE = 0.19;
+export const SEED_RADIUS = 0.04;
 
 interface FlowerOptions extends Placement {
 	petals: number;
@@ -13,7 +15,7 @@ interface FlowerOptions extends Placement {
 
 /**
  * Layered rosette, one unit in radius: a back ring of petals, a smaller front ring offset by
- * half a petal, then a centre disc with golden-angle seed dots.
+ * half a petal, then a centre disc with a dot in the middle and a ring of evenly spaced dots round it.
  */
 export function flowerMotif({ petals, backFill, frontFill, centreFill, seedFill, ...placement }: FlowerOptions): string {
 	const step = 360 / petals;
@@ -22,11 +24,14 @@ export function flowerMotif({ petals, backFill, frontFill, centreFill, seedFill,
 			{ length: petals },
 			(_, index) => `<path d="${petalPath(length, width)}" fill="${fill}" transform="rotate(${fixed(index * step + offset)})"/>`
 		).join('');
-	const seeds = Array.from({ length: 9 }, (_, index) => {
-		const distance = 0.22 * Math.sqrt((index + 0.5) / 9);
-		const angle = index * GOLDEN_ANGLE;
-		return `<circle cx="${fixed(Math.cos(angle) * distance)}" cy="${fixed(Math.sin(angle) * distance)}" r="0.04" fill="${seedFill}"/>`;
-	}).join('');
+	// A dot in the middle and a ring of evenly spaced dots round it: geometric, not scattered.
+	const seeds = [
+		`<circle r="${SEED_RADIUS}" fill="${seedFill}"/>`,
+		...Array.from({ length: SEED_RING_COUNT }, (_, index) => {
+			const angle = (index * 2 * Math.PI) / SEED_RING_COUNT;
+			return `<circle cx="${fixed(Math.sin(angle) * SEED_RING_DISTANCE)}" cy="${fixed(-Math.cos(angle) * SEED_RING_DISTANCE)}" r="${SEED_RADIUS}" fill="${seedFill}"/>`;
+		})
+	].join('');
 	return [
 		`<g transform="${transformAttr(placement)}">`,
 		ring(1, Math.min(0.62, 3.2 / petals), 0, backFill),

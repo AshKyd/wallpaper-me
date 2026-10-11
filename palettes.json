@@ -340,11 +340,11 @@
 		"url": null,
 		"creator": null,
 		"colors": [
-			{ "hex": "#C46317", "prominence": 32.0 },
-			{ "hex": "#70340B", "prominence": 20.0 },
-			{ "hex": "#EB8E3E", "prominence": 22.0 },
-			{ "hex": "#F6C48A", "prominence": 14.0 },
-			{ "hex": "#FDF0E6", "prominence": 12.0 }
+			{ "hex": "#FF7A1A", "prominence": 32.0 },
+			{ "hex": "#C2410C", "prominence": 20.0 },
+			{ "hex": "#FF9B4A", "prominence": 22.0 },
+			{ "hex": "#FFC48F", "prominence": 14.0 },
+			{ "hex": "#FFF1E6", "prominence": 12.0 }
 		]
 	},
 	{
@@ -352,11 +352,11 @@
 		"url": null,
 		"creator": null,
 		"colors": [
-			{ "hex": "#C4A417", "prominence": 32.0 },
-			{ "hex": "#70590B", "prominence": 20.0 },
-			{ "hex": "#EBCB3E", "prominence": 22.0 },
-			{ "hex": "#F6E48A", "prominence": 14.0 },
-			{ "hex": "#FDF9E6", "prominence": 12.0 }
+			{ "hex": "#F5B800", "prominence": 32.0 },
+			{ "hex": "#9A6208", "prominence": 20.0 },
+			{ "hex": "#FFD62E", "prominence": 22.0 },
+			{ "hex": "#FFE98A", "prominence": 14.0 },
+			{ "hex": "#FFF8DB", "prominence": 12.0 }
 		]
 	},
 	{
@@ -381,6 +381,19 @@
 			{ "hex": "#9A3EEB", "prominence": 22.0 },
 			{ "hex": "#C48AF6", "prominence": 14.0 },
 			{ "hex": "#F1E6FD", "prominence": 12.0 }
+		]
+	},
+	{
+		"title": "Hot Pink",
+		"url": null,
+		"creator": null,
+		"colors": [
+			{ "hex": "#FF1A8C", "prominence": 30.0 },
+			{ "hex": "#000000", "prominence": 22.0 },
+			{ "hex": "#F9B4CF", "prominence": 18.0 },
+			{ "hex": "#FFFFFF", "prominence": 14.0 },
+			{ "hex": "#F25C9A", "prominence": 10.0 },
+			{ "hex": "#FCE4EE", "prominence": 6.0 }
 		]
 	}
 ]

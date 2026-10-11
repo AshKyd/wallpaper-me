@@ -1,56 +1,105 @@
-# sv
+# Wallpaper Me
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Makes wallpapers from colour palettes. It is two things:
 
-## Creating a project
+- A single page app at `wallpapers.kyd.au` where you pick a style, then change the palette, tone and seed. The settings are in the URL, so a link recreates the wallpaper. See [devdocs/wallpaper-maker.md](devdocs/wallpaper-maker.md).
+- A library that turns a palette into an SVG. It has no Svelte or browser dependency and runs in Node.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Library
 
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+### Build
 
 ```sh
-# recreate this project
-npx sv@1.1.1 create --template minimal --types ts --add prettier eslint ai-tools="ide:claude-code+delivery:plugin" storybook --install npm wallpaper-me
+npm run build:lib
 ```
 
-## Adding features
+This writes JavaScript and type declarations to `dist/`, from [src/lib/index.ts](src/lib/index.ts). `dist/` is not committed. To use it from another project, run `npm pack` and install the tarball, or `npm link`.
 
-Add features to your project with `sv add`:
+The one dependency is `msrand`, used for seeded randomness.
+
+### Use
+
+```ts
+import { writeFile } from 'node:fs/promises';
+import { paletteSvg } from 'wallpaper-me';
+
+const palette = {
+	title: 'Sunset',
+	url: null,
+	creator: null,
+	colors: [
+		{ hex: '#264653', prominence: 0.4 },
+		{ hex: '#2a9d8f', prominence: 0.3 },
+		{ hex: '#e9c46a', prominence: 0.2 },
+		{ hex: '#e76f51', prominence: 0.1 }
+	]
+};
+
+const svg = paletteSvg({ palette, variant: 'hexagons', seed: 42, tone: 'pastel', width: 3840, height: 2160 });
+await writeFile('wallpaper.svg', svg);
+```
+
+The same `palette`, `variant`, `seed`, `tone`, `gap` and shape always give the same SVG.
+
+### `paletteSvg(options)`
+
+Returns a complete `<svg>` document as a string.
+
+- `palette` (required): a `Palette`.
+- `variant` (required): a `PaletteVariant`.
+- `seed`: number, default `1`.
+- `tone`: a `PaletteTone`, default `'original'`.
+- `gap`: borders between shapes, `0` to `0.4`, default `0`. Only `hexagons` uses it.
+- `width`, `height`: size of the SVG in pixels, default `1920` and `1080`.
+- `shape`: `{ width, height }`. The shape the art is laid out for, if different from `width` and `height`. The image crops to its own shape.
+- `bleed`: draws `PARALLAX_BLEED` extra on every side, then crops back. Set it to match a screen that has parallax on, as that changes the layout.
+- `idPrefix`: prefix for `id`s inside the SVG (gradients, filters), default `'palette-art'`. Give each SVG on one page a different one.
+
+### Other exports
+
+- `generatePaletteArt({ palette, variant, seed, tone, gap, idPrefix, width, height, depth })`: only the inner markup, for a `0 0 width height` viewBox. Use `canvasSizeFor()` to get a size.
+- `canvasSizeFor(containerWidth, containerHeight)`: the canvas size for a container. Height is always `CANVAS_HEIGHT` (800). Width follows the container's ratio, clamped to 0.5 to 3 and rounded to 0.25 steps.
+- `CANVAS_WIDTH`, `CANVAS_HEIGHT`: the default canvas, 1200 by 800.
+- `PALETTE_VARIANTS`, `PaletteVariant`: `circles`, `triangles`, `diamonds`, `bands`, `flowers`, `checkerboard`, `hexagons`, `bokeh`, `mondrian`, `stripes`, `midcentury`, `80s`, `neon`.
+- `PALETTE_TONES`, `PaletteTone`: `original`, `pastel`, `dark`, `subtleDark`.
+- `applyTone(markup, palette, tone)`, `buildToneMap(palette, tone)`: recolour markup, or get a `(hex) => hex` function using the same processing.
+- `PARALLAX_BLEED`: 80 canvas units.
+- `splitLayers(art)`, `ArtLayer`: split art made with `depth` into a backdrop and parallax layers.
+- `normalisePalette(palette)`: merges repeated hexes and sorts by `prominence`.
+- `createRandom(seed)`, `hashSeed(text)`: the seeded random function and a string-to-seed hash.
+- Types: `Palette`, `PaletteColour`, `PaletteSvgOptions`, `GeneratorInput`, `DepthSettings`.
+
+### `Palette`
+
+```ts
+interface Palette {
+	title: string;
+	url: string | null;
+	creator: string | null;
+	colors: { hex: string; prominence: number }[];
+}
+```
+
+- `hex` must be a 6-digit hex such as `#2a9d8f`.
+- `prominence` is how much of the palette a colour takes. The most prominent colour becomes the background.
+- [palettes.json](palettes.json) has sample palettes. For how each variant works, see [devdocs/palette-backgrounds.md](devdocs/palette-backgrounds.md).
+
+### Notes
+
+- The SVG is built from numbers and palette hexes only, so it is safe to inline. Use a valid `hex` in each palette colour.
+- The Svelte component [PaletteBackground](src/lib/components/PaletteBackground/PaletteBackground.svelte) is not in the library build. Import it from source.
+- Everything in `src/lib/index.ts` must import by relative path with `.js` endings, because the library is built with plain `tsc`.
+
+## Development
 
 ```sh
-npx sv add
+npm install
+npm run dev            # the app
+npm run storybook      # PaletteBackground stories
+npm test               # vitest
+npm run check          # svelte-check
+npm run build          # the app, into build/
+npm run build:lib      # the library, into dist/
 ```
 
-For example, to add Tailwind CSS:
-
-```sh
-npx sv add tailwindcss
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+Deployment (Docker and Traefik) is in [devdocs/deployment.md](devdocs/deployment.md).

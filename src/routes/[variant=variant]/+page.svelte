@@ -64,6 +64,8 @@
 			</div>
 		{:else}
 			<GlassPanel class="controls">
+				<!-- The panel clips its content (it has rounded corners), so the scrolling happens in this wrapper. -->
+				<div class="scroller">
 				<Padding size="m">
 					<div class="heading">
 						<Button href={resolve('/')} icon="arrow-left" label="Variants" variant="ghost" size="small" />
@@ -71,7 +73,7 @@
 					</div>
 					<WallpaperControls {settings} {palettes} onchange={change} ondownload={download} />
 				</Padding>
-			</GlassPanel>
+			</div></GlassPanel>
 		{/if}
 	</div>
 {/if}
@@ -95,7 +97,16 @@
 		right: 1rem;
 		bottom: 1rem;
 		width: min(22rem, calc(100vw - 2rem));
-		overflow: auto;
+		display: flex;
+		flex-direction: column;
+	}
+
+	/* `min-height: 0` lets a flex child shrink below its content, which is what makes it scroll. */
+	.scroller {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	.show-controls {

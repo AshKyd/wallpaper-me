@@ -1,3 +1,5 @@
+import MSRand, { MAX_INTEGER } from 'msrand';
+
 export interface PaletteColour {
 	hex: string;
 	/** Share of the palette this colour takes up, as set by the palette's author. */
@@ -13,16 +15,20 @@ export interface Palette {
 
 type Rgb = [number, number, number];
 
-/** Returns a function giving repeatable numbers in [0, 1) for a seed (mulberry32). */
+/**
+ * Outputs thrown away after seeding. `msrand` is a linear congruential generator, so for neighbouring seeds
+ * (1, 2, 3 ...) the first outputs are almost the same, and the first random choices in each artwork
+ * (where the first circle goes, which colour comes first) would barely change between seeds. A few steps
+ * spread them apart.
+ */
+const WARM_UP_STEPS = 4;
+
+/** Returns a function giving repeatable numbers in [0, 1) for a seed, from `msrand` (the Microsoft C `rand`). */
 export function createRandom(seed: number): () => number {
-	let state = seed >>> 0;
-	return () => {
-		state = (state + 0x6d2b79f5) >>> 0;
-		let t = state;
-		t = Math.imul(t ^ (t >>> 15), t | 1);
-		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-	};
+	const generator = new MSRand(seed >>> 0);
+	Array.from({ length: WARM_UP_STEPS }, () => generator.rand());
+	// `randDecimal()` can return exactly 1, which would put `floor(random() * n)` one past the end of a list. Dividing by one more keeps it below 1.
+	return () => generator.rand() / (MAX_INTEGER + 1);
 }
 
 /** Turns any string into a numeric seed, so stories can seed by palette title. */
@@ -75,6 +81,40 @@ export function normalisePalette({ colors }: Palette): PaletteColour[] {
 	return [...merged]
 		.map(([hex, prominence]) => ({ hex, prominence }))
 		.sort((a, b) => b.prominence - a.prominence);
+}
+
+/** Every order of the items. n! of them, so only for a handful. */
+const permutations = <T>(items: T[]): T[][] =>
+	items.length <= 1
+		? [items]
+		: items.flatMap((item, index) => permutations([...items.slice(0, index), ...items.slice(index + 1)]).map((rest) => [item, ...rest]));
+
+/** Total distance along a path of colours, from the first to the last. */
+const pathLength = (path: string[]) => path.slice(1).reduce((sum, hex, index) => sum + colourDistance(path[index]!, hex), 0);
+
+/** Up to this many colours are ordered exactly (every order is tried); more use the nearest unused colour each time. */
+const MAX_EXACT_ORDER = 8;
+
+/**
+ * The colours in order of similarity: a path through all of them in which each is next to the colours most
+ * like it, so stepping along the path changes colour gently. It is the shortest path by `colourDistance`.
+ * Exact up to `MAX_EXACT_ORDER` colours; beyond that it walks to the nearest unused colour, which is close
+ * to shortest. The path is oriented dark to light (by `luminance`) so the result doesn't depend on which way
+ * round it was found.
+ */
+export function orderBySimilarity(hexes: string[]): string[] {
+	const dark = (path: string[]) => (luminance(path[0]!) > luminance(path.at(-1)!) ? [...path].reverse() : path);
+	if (hexes.length < 3) return dark(hexes);
+	if (hexes.length <= MAX_EXACT_ORDER) {
+		return dark(permutations(hexes).reduce((best, path) => (pathLength(path) < pathLength(best) ? path : best)));
+	}
+	const darkest = [...hexes].sort((a, b) => luminance(a) - luminance(b))[0]!;
+	const walk = (path: string[], remaining: string[]): string[] => {
+		if (remaining.length === 0) return path;
+		const next = remaining.reduce((best, hex) => (colourDistance(path.at(-1)!, hex) < colourDistance(path.at(-1)!, best) ? hex : best));
+		return walk([...path, next], remaining.filter((hex) => hex !== next));
+	};
+	return dark(walk([darkest], hexes.filter((hex) => hex !== darkest)));
 }
 
 /** Picks a colour with odds proportional to its prominence. */

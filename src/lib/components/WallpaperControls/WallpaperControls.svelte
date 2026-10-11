@@ -143,7 +143,7 @@
 		</InputGroup>
 	</Field>
 
-	{#if settings.variant === 'hexagons'}
+	{#if settings.variant === 'hexagons' || settings.variant === 'mondrian'}
 		{@render slider({ id: 'gap', label: 'Border', value: settings.gap, min: 0, max: 0.4, step: 0.02, key: 'gap' })}
 	{/if}
 	<!-- Parallax has no controls: it is always on unless Reduced Motion is. -->

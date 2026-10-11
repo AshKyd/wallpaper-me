@@ -1,5 +1,4 @@
-import { canvasSizeFor, generatePaletteArt } from '#lib/components/PaletteBackground/generators.js';
-import { PARALLAX_BLEED } from '#lib/components/PaletteBackground/parallax.js';
+import { paletteSvg } from '#lib/components/PaletteBackground/svg.js';
 import type { Palette } from '#lib/components/PaletteBackground/paletteUtils.js';
 import type { WallpaperSettings } from './wallpaperSettings.js';
 
@@ -35,19 +34,18 @@ export function buildWallpaperSvg({ settings, palette, width, height, viewportWi
 	/** Whether the screen is drawing with parallax (it is, unless Reduced Motion is on). */
 	parallax: boolean;
 }): string {
-	const canvas = canvasSizeFor(viewportWidth, viewportHeight);
-	const bleed = parallax ? PARALLAX_BLEED : 0;
-	const art = generatePaletteArt({
+	return paletteSvg({
 		palette,
 		variant: settings.variant,
 		seed: settings.seed,
 		tone: settings.tone,
 		gap: settings.gap,
-		idPrefix: 'export',
-		width: canvas.width + bleed * 2,
-		height: canvas.height + bleed * 2
+		width,
+		height,
+		shape: { width: viewportWidth, height: viewportHeight },
+		bleed: parallax,
+		idPrefix: 'export'
 	});
-	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${bleed} ${bleed} ${canvas.width} ${canvas.height}" preserveAspectRatio="xMidYMid slice">${art}</svg>`;
 }
 
 /** `Sunset Dunes` + `circles` + 12 -> `wallpaper-circles-sunset-dunes-12.png`. */

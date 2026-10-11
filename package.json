@@ -3,7 +3,20 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
 	"scripts": {
+		"build:lib": "tsc -p tsconfig.lib.json",
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
@@ -44,6 +57,7 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
+		"msrand": "^2.1.0",
 		"svelte-akui": "github:ashkyd/svelte-akui"
 	}
 }

@@ -15,6 +15,8 @@ export interface GeneratorInput {
 	/** Palette colours, most prominent first. */
 	colours: PaletteColour[];
 	random: () => number;
+	/** The seed `random` was made from, for a generator that wants a value from it directly (`stripes` turns by it). */
+	seed?: number;
 	/** Makes SVG `id`s unique when several artworks share a page. */
 	idPrefix: string;
 	/** Canvas size the artwork is drawn for. */

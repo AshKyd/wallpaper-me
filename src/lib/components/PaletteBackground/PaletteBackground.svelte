@@ -81,6 +81,11 @@
 	/** Canvas units to screen pixels: the art is scaled to cover the container. */
 	const pixelsPerUnit = $derived(containerWidth && containerHeight ? Math.max(containerWidth / width, containerHeight / height) : 1);
 
+	// Layer boxes sit on whole screen pixels: Firefox snaps an SVG's box to a pixel but not its content,
+	// so a fractional box leaves shape edges between pixels and shows seams.
+	const layerWidth = $derived(Math.round(paddedWidth * pixelsPerUnit));
+	const layerHeight = $derived(Math.round(paddedHeight * pixelsPerUnit));
+
 	/** Where the cursor is over the background, -1 to 1 per axis from its centre. The cursor may be anywhere on the page. */
 	let cursor = $state({ x: 0, y: 0 });
 	const slide = $derived(parallaxOffset(cursor, parallaxDistance));
@@ -129,10 +134,10 @@
 		preserveAspectRatio="xMidYMid slice"
 		aria-hidden="true"
 		xmlns="http://www.w3.org/2000/svg"
-		style:width="{paddedWidth * pixelsPerUnit}px"
-		style:height="{paddedHeight * pixelsPerUnit}px"
-		style:left="{(containerWidth - paddedWidth * pixelsPerUnit) / 2}px"
-		style:top="{(containerHeight - paddedHeight * pixelsPerUnit) / 2}px"
+		style:width="{layerWidth}px"
+		style:height="{layerHeight}px"
+		style:left="{Math.round((containerWidth - layerWidth) / 2)}px"
+		style:top="{Math.round((containerHeight - layerHeight) / 2)}px"
 		style:--shift={shift}
 	>
 		<!-- eslint-disable-next-line svelte/no-at-html-tags -- markup comes only from our generators -->
@@ -184,6 +189,11 @@
 		display: block;
 	}
 
+	/* Puts the art on its own compositing layer, which Firefox draws on whole pixels. */
+	.palette-background-art {
+		transform: translate(0, 0);
+	}
+
 	/* A layer slides by the cursor offset (screen pixels) times its own --shift. will-change keeps it on its own GPU layer. */
 	.palette-background-layer {
 		position: absolute;
@@ -193,7 +203,8 @@
 		   offset left by half the bleed, which leaves bare background on the right. */
 		max-width: none;
 		max-height: none;
-		transform: translate3d(calc(var(--parallax-x, 0px) * var(--shift, 0)), calc(var(--parallax-y, 0px) * var(--shift, 0)), 0);
+		/* Rounded to a whole screen pixel: a fractional slide blurs the layer's edges and shows seams between shapes. */
+		transform: translate3d(round(calc(var(--parallax-x, 0px) * var(--shift, 0)), 1px), round(calc(var(--parallax-y, 0px) * var(--shift, 0)), 1px), 0);
 		will-change: transform;
 	}
 
