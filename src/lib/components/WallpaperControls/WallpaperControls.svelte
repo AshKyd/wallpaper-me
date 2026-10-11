@@ -102,6 +102,18 @@
 				</SelectableItem>
 			{/each}
 		</div>
+
+		<!-- The chosen palette's name and credit. Both lines always take their space, so the controls below
+		     don't move when you pick a palette that has no creator or link. -->
+		<p class="palette-credit">
+			<strong class="palette-name">{currentPalette.title}</strong>
+			<small class="palette-attribution">
+				{#if currentPalette.creator}by {currentPalette.creator}{/if}
+				{#if currentPalette.url}
+					<a href={currentPalette.url} target="_blank" rel="noopener noreferrer">{currentPalette.creator ? '(source)' : 'Source'}</a>
+				{/if}
+			</small>
+		</p>
 	</Field>
 
 	<Field label="Tone">
@@ -144,6 +156,28 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.9rem;
+	}
+
+	.palette-credit {
+		display: flex;
+		flex-direction: column;
+		margin: 0.5rem 0 0;
+		padding: 0 4px;
+	}
+
+	/* One line each, truncated, so a long name or creator can't change the height either. */
+	.palette-name,
+	.palette-attribution {
+		display: block;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		line-height: 1.4;
+	}
+
+	/* Empty when a palette has no creator or link, but the line is still reserved. */
+	.palette-attribution {
+		min-height: 1.4em;
 	}
 
 	.wallpaper-controls :global(.download) {
