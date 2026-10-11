@@ -1,0 +1,22 @@
+services:
+  wallpapers:
+    build: .
+    container_name: wallpapers.kyd.au
+    restart: unless-stopped
+    networks:
+      - traefik_default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik_default
+      - traefik.http.routers.wallpapers.rule=Host(`wallpapers.kyd.au`)
+      - traefik.http.routers.wallpapers.entrypoints=websecure
+      - traefik.http.routers.wallpapers.tls=true
+      - traefik.http.routers.wallpapers.tls.certresolver=le
+      - traefik.http.routers.wallpapers.middlewares=wallpapers-compress
+      - traefik.http.middlewares.wallpapers-compress.compress=true
+      - traefik.http.middlewares.wallpapers-compress.compress.encodings=zstd,gzip
+      - traefik.http.services.wallpapers.loadbalancer.server.port=8787
+
+networks:
+  traefik_default:
+    external: true

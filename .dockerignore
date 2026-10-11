@@ -1,0 +1,10 @@
+node_modules
+.svelte-kit
+build
+storybook-static
+*storybook.log
+.git
+.env
+.env.*
+*profile.json
+analyse-profile.tmp.mjs
