@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { PALETTE_VARIANTS } from '#lib/components/PaletteBackground/generators.js';
+import { VARIANT_NAMES } from '../../params/index.js';
 import { DEFAULT_SETTINGS, SEED_MAX, isVariant, readSettings, toQueryString, type WallpaperSettings } from './wallpaperSettings.js';
 
 const read = (query: string, paletteCount = 10) =>
@@ -37,6 +39,10 @@ describe('wallpaperSettings', () => {
 
 	it('ignores unknown tones', () => {
 		expect(read('t=neon').tone).toBe('original');
+	});
+
+	it('keeps the route matcher in step with the real variants', () => {
+		expect(VARIANT_NAMES).toEqual([...PALETTE_VARIANTS]);
 	});
 
 	it('recognises only real variants', () => {

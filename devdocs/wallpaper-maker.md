@@ -6,7 +6,7 @@ A single page app (no server rendering) that builds a [PaletteBackground](../src
 
 - Regular (path) routing. `adapter-static` with `fallback: 'index.html'` in [vite.config.ts](../vite.config.ts) and `ssr = false` in [+layout.ts](../src/routes/+layout.ts) make it a single page app. The host must serve `index.html` for any path, or `/circles?p=3` will 404 on a reload.
 - `/` ([+page.svelte](../src/routes/+page.svelte)): `VariantChooser`, one preview card per `PaletteVariant`.
-- `/<variant>?...` ([[variant=variant]/+page.svelte](../src/routes/[variant=variant]/+page.svelte)): the editor. The `variant` matcher in [params/index.ts](../src/params/index.ts) only accepts real variants. SvelteKit 3 matchers are Standard Schema objects exported in `params`, not per-file functions.
+- `/<variant>?...` ([[variant=variant]/+page.svelte](../src/routes/[variant=variant]/+page.svelte)): the editor. The `variant` matcher in [params/index.ts](../src/params/index.ts) only accepts real variants. SvelteKit 3 matchers are Standard Schema objects exported in `params`, not per-file functions. SvelteKit loads that file directly in Node at build time (native type stripping), which can't resolve this project's `.js`-to-`.ts` imports or `#lib`, so it imports nothing and keeps its own `VARIANT_NAMES` list. A test in [wallpaperSettings.test.ts](../src/lib/wallpaper/wallpaperSettings.test.ts) fails if that list drifts from `PALETTE_VARIANTS`.
 
 ## URL state
 
