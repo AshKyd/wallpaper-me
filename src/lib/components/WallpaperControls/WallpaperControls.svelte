@@ -257,10 +257,10 @@
 		gap: 0.5rem;
 		max-height: 24rem;
 		overflow: auto;
-		/* Touch: a vertical drag scrolls the list rather than selecting, and it doesn't chain into the panel
-		   behind (which scrolls too on small screens). Tiles are far larger than the 44px touch minimum. */
+		/* Touch: a vertical drag scrolls the list rather than selecting. Tiles are far larger than the 44px touch minimum.
+		   Scrolling chains on to the panel once the list hits its end; `contain` here trapped the wheel inside the
+		   list, which fills much of the panel, so the panel was hard to scroll. */
 		touch-action: pan-y;
-		overscroll-behavior: contain;
 		-webkit-overflow-scrolling: touch;
 		padding: 4px;
 	}
