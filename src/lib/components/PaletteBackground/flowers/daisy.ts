@@ -15,6 +15,8 @@ interface FlowerPowerOptions extends Placement {
 	centreFill: string;
 	/** Colour of the gap ring and seed dots (the background colour). */
 	groundFill: string;
+	/** `id` of an SVG filter to apply, drawn in flower units so it scales with the flower. */
+	filterId?: string;
 }
 
 /** Evenly turned copies of one shape around the origin. */
@@ -28,7 +30,7 @@ const ring = (count: number, shape: string, offset = 0) =>
  * - `bloom`: the layered pointed-petal rosette from `flowerMotif`.
  * - `target`: a scalloped edge around concentric discs.
  */
-export function flowerPowerMotif({ style, petals, outerFill, innerFill, centreFill, groundFill, ...placement }: FlowerPowerOptions): string {
+export function flowerPowerMotif({ style, petals, outerFill, innerFill, centreFill, groundFill, filterId, ...placement }: FlowerPowerOptions): string {
 	const centre = [
 		`<circle r="0.36" fill="${centreFill}"/>`,
 		`<circle r="0.25" fill="${groundFill}"/>`,
@@ -69,5 +71,7 @@ export function flowerPowerMotif({ style, petals, outerFill, innerFill, centreFi
 		}
 	}[style]();
 
-	return `<g transform="${transformAttr(placement)}">${body}</g>`;
+	// The filter sits on the scaled group, so its units are flower units: one filter fits every size.
+	const filterAttr = filterId ? ` filter="url(#${filterId})"` : '';
+	return `<g transform="${transformAttr(placement)}"${filterAttr}>${body}</g>`;
 }

@@ -76,12 +76,44 @@ function backgroundCircles({ roles, random, width, height }: { roles: ColourRole
 	}).join('');
 }
 
+/** Different noise seeds, so neighbouring flowers don't wobble identically. */
+const WOBBLE_VARIANTS = 4;
+/** How far edges drift, as a share of the flower's radius. Applied in flower units, so it scales with size. */
+const WOBBLE_STRENGTH = 0.07;
+/** Flowers smaller than this stay crisp. */
+const MIN_WOBBLE_RADIUS = 60;
+/** Noise frequency in flower units: about two or three wobbles across a flower, at any size. */
+const WOBBLE_FREQUENCY = 2.4;
+
+/**
+ * Turbulence displacement filters that make flat edges slightly hand-drawn. They run in the
+ * flower's own units (the filter sits on the group scaled by the radius), so big flowers get big,
+ * slow wobbles and small ones get fine ones, with the same look.
+ */
+const wobbleFilters = (idPrefix: string) => {
+	const idFor = (variant: number) => `${idPrefix}-flower-wobble-${variant}`;
+	const defs = Array.from(
+		{ length: WOBBLE_VARIANTS },
+		(_, variant) =>
+			`<filter id="${idFor(variant)}" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="${WOBBLE_FREQUENCY}" numOctaves="1" seed="${variant + 1}" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="${WOBBLE_STRENGTH}" xChannelSelector="R" yChannelSelector="G"/></filter>`
+	).join('');
+	return { idFor, defs };
+};
+
+/** The tint circles' edges drift far more than the flowers', so they read as soft organic blobs. In canvas units. */
+const BACKGROUND_WOBBLE = { strength: 70, frequency: 0.004 };
+
+/** One filter for the whole group of tint circles, with a margin so displaced edges aren't clipped. */
+const backgroundWobbleFilter = ({ id, width, height }: { id: string; width: number; height: number }) =>
+	`<filter id="${id}" filterUnits="userSpaceOnUse" x="-200" y="-200" width="${width + 400}" height="${height + 400}"><feTurbulence type="fractalNoise" baseFrequency="${BACKGROUND_WOBBLE.frequency}" numOctaves="2" seed="9" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="${BACKGROUND_WOBBLE.strength}" xChannelSelector="R" yChannelSelector="G"/></filter>`;
+
 /**
  * Flower-power wall: a couple of big flowers, then progressively smaller ones (see
  * `layoutFlowers`), with dots in what is left, over large tonal circles of background colour.
  */
-export function flowersArt({ colours, random, width, height, depth }: GeneratorInput): string {
+export function flowersArt({ colours, random, idPrefix, width, height, depth }: GeneratorInput): string {
 	const roles: ColourRoles = assignColourRoles(colours, random);
+	const wobble = wobbleFilters(idPrefix);
 	const flowers = layoutFlowers({ width, height, random });
 
 	const flowerItems = flowers.map(({ x, y, radius }, index): DepthItem => ({
@@ -96,7 +128,9 @@ export function flowersArt({ colours, random, width, height, depth }: GeneratorI
 			outerFill: fillAt(roles, index),
 			innerFill: index % 3 === 0 ? roles.outline : fillAt(roles, index + 1),
 			centreFill: index % 2 ? roles.outline : roles.echo,
-			groundFill: roles.ground
+			groundFill: roles.ground,
+			// Small flowers wobble too little to see, and every filtered element costs a re-render under the glass panel.
+			filterId: radius >= MIN_WOBBLE_RADIUS ? wobble.idFor(index % WOBBLE_VARIANTS) : undefined
 		})
 	}));
 
@@ -111,5 +145,11 @@ export function flowersArt({ colours, random, width, height, depth }: GeneratorI
 	// Dots are smaller than any flower, so with depth they sit furthest back.
 	const layers = depthLayers({ items: [...dotItems, ...flowerItems], range: FLOWER_SIZE_RANGE, settings: depth });
 
-	return [`<rect width="${width}" height="${height}" fill="${roles.ground}"/>`, backgroundCircles({ roles, random, width, height }), layers].join('');
+	const backgroundFilterId = `${idPrefix}-flower-background-wobble`;
+	return [
+		`<defs>${wobble.defs}${backgroundWobbleFilter({ id: backgroundFilterId, width, height })}</defs>`,
+		`<rect width="${width}" height="${height}" fill="${roles.ground}"/>`,
+		`<g filter="url(#${backgroundFilterId})">${backgroundCircles({ roles, random, width, height })}</g>`,
+		layers
+	].join('');
 }
