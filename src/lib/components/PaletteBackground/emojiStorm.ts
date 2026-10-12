@@ -2,7 +2,7 @@ import { round, type GeneratorInput } from './canvas.js';
 import { depthsOf, type DepthItem, type SizeRange } from './depth.js';
 import { DEPTH_LAYERS, depthLayers } from './depthLayers.js';
 import { splitColours } from './eighties.js';
-import { mixHex } from './paletteUtils.js';
+import { luminance, mixHex } from './paletteUtils.js';
 import { packCircles } from './packing.js';
 
 /**
@@ -66,16 +66,25 @@ const GRADIENT_REACH = 0.35;
 /** Blur for a depth layer (0 is the furthest, `DEPTH_LAYERS - 1` the nearest). */
 export const blurForLayer = (layer: number) => round(MAX_BLUR * (1 - layer / (DEPTH_LAYERS - 1)));
 
+/** Colours at least this light (`luminance()`, 0 to 1) are multiplied with the emoji; darker ones are soft-lit. */
+export const LIGHT_COLOUR_LUMINANCE = 0.5;
+
 /**
- * Turns an emoji into a flat, one-colour silhouette with its shading kept: greyed, soft-light blended onto the colour
- * (so mid grey is the colour itself, darker greys shade it darker and lighter ones lighter, and nothing clips to
- * black or white; `multiply` left dark parts dark and coloured only the highlights, and `screen` blew the lights
- * out to white), masked by the emoji's own outline
+ * How the greyed emoji is blended with a colour. A light colour is multiplied: the emoji's lightest parts take the
+ * colour in full and its darker parts shade it, which keeps the detail. Multiplying a dark colour would leave the
+ * emoji nearly black, and `screen` blows the lights out to white, so a darker colour gets `soft-light`: mid grey is
+ * the colour itself, darker greys shade it and lighter ones lift it, and nothing clips.
+ */
+export const blendModeFor = (colour: string) => (luminance(colour) >= LIGHT_COLOUR_LUMINANCE ? 'multiply' : 'soft-light');
+
+/**
+ * Turns an emoji into a flat, one-colour silhouette with its shading kept: greyed, blended with the colour (see
+ * `blendModeFor()`), masked by the emoji's own outline
  * so nothing is painted around it, and last blurred by `blur` (none if 0), which softens the edge into the background.
  * The blurred filter's region is larger, so the blur isn't cut off at the emoji's box.
  */
 export const tintFilter = ({ id, colour, blur = 0 }: { id: string; colour: string; blur?: number }) =>
-	`<filter id="${id}" color-interpolation-filters="sRGB"${blur > 0 ? ' x="-50%" y="-50%" width="200%" height="200%"' : ''}><feColorMatrix in="SourceGraphic" type="saturate" values="0" result="grey"/><feFlood flood-color="${colour}" result="tint"/><feBlend in="grey" in2="tint" mode="soft-light" result="mixed"/><feComposite in="mixed" in2="SourceGraphic" operator="in"${blur > 0 ? ' result="masked"/><feGaussianBlur in="masked" stdDeviation="' + blur + '"' : ''}/></filter>`;
+	`<filter id="${id}" color-interpolation-filters="sRGB"${blur > 0 ? ' x="-50%" y="-50%" width="200%" height="200%"' : ''}><feColorMatrix in="SourceGraphic" type="saturate" values="0" result="grey"/><feFlood flood-color="${colour}" result="tint"/><feBlend in="grey" in2="tint" mode="${blendModeFor(colour)}" result="mixed"/><feComposite in="mixed" in2="SourceGraphic" operator="in"${blur > 0 ? ' result="masked"/><feGaussianBlur in="masked" stdDeviation="' + blur + '"' : ''}/></filter>`;
 
 interface PlacedEmoji {
 	x: number;

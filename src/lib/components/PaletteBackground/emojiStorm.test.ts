@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import paletteData from '../../../../palettes.json';
 import { DEPTH_LAYERS, splitLayers } from './depthLayers.js';
-import { STORM_EMOJI, MAX_BLUR, RANDOM_EMOJI, blurForLayer, isEmoji, tintFilter } from './emojiStorm.js';
+import { blendModeFor, STORM_EMOJI, MAX_BLUR, RANDOM_EMOJI, blurForLayer, isEmoji, tintFilter } from './emojiStorm.js';
 import { generatePaletteArt } from './generators.js';
 import type { Palette } from './paletteUtils.js';
 
@@ -71,7 +71,14 @@ describe('Emoji Storm art', () => {
 		expect(Math.min(...emoji.map(({ blur }) => blur))).toBe(0);
 	});
 
-	it('greys, soft-lights and masks each emoji through a filter that exists', () => {
+	it('blends light colours by multiplying and darker ones by soft light', () => {
+		['#ffffff', '#f0c040', '#80c0ff'].forEach((colour) => expect(blendModeFor(colour)).toBe('multiply'));
+		['#000000', '#336699', '#5a2d0c'].forEach((colour) => expect(blendModeFor(colour)).toBe('soft-light'));
+		expect(tintFilter({ id: 'x', colour: '#f0c040' })).toContain('mode="multiply"');
+		expect(tintFilter({ id: 'x', colour: '#336699' })).toContain('mode="soft-light"');
+	});
+
+	it('greys, blends and masks each emoji through a filter that exists', () => {
 		const markup = art();
 		const filterIds = [...markup.matchAll(/<filter id="([^"]+)"/g)].map(([, id]) => id!);
 		expect(filterIds.length).toBeGreaterThan(0);
@@ -79,7 +86,7 @@ describe('Emoji Storm art', () => {
 		const filter = tintFilter({ id: 'x', colour: '#336699' });
 		expect(filter).toContain('type="saturate" values="0"');
 		expect(filter).toContain('flood-color="#336699"');
-		expect(filter).toContain('mode="soft-light"');
+		expect(filter).toContain('<feBlend in="grey" in2="tint"');
 		// Nothing else adjusts the blend before the mask.
 		expect(filter).not.toContain('feComponentTransfer');
 		expect(filter.match(/type="saturate"/g)).toHaveLength(1);
