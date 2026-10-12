@@ -16,9 +16,11 @@
 		aberration?: boolean;
 		/** Sub-types fixed by the user (see `VARIANT_OPTIONS`). */
 		options?: Record<string, string>;
+		/** Drives the parallax from a scroll position (0 to 1) instead of the cursor. */
+		scrollProgress?: number;
 	}
 
-	let { palette, variant, seed = 1, tone = 'original', gap = 0, grain = false, aberration = false, options = {} }: Props = $props();
+	let { palette, variant, seed = 1, tone = 'original', gap = 0, grain = false, aberration = false, options = {}, scrollProgress }: Props = $props();
 
 	// Parallax is always on, except when the user has asked for reduced motion (system setting or akui override).
 	const parallax = $derived(!reducedMotion.value);
@@ -33,7 +35,7 @@
 	{#key lookKey}
 		<!-- Old and new are both on screen during the wipe. The new one is later in the DOM, so it sits on top. -->
 		<div class="fullscreen-wallpaper" in:wipe={motion({ duration: 800 })} out:hold={motion({ duration: 800 })}>
-			<PaletteBackground {palette} {variant} {seed} {tone} {gap} {grain} {aberration} {options} {parallax} />
+			<PaletteBackground {palette} {variant} {seed} {tone} {gap} {grain} {aberration} {options} {parallax} {scrollProgress} />
 		</div>
 	{/key}
 </div>

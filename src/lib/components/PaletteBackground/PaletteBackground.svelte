@@ -33,6 +33,8 @@
 		parallaxPoint?: number;
 		/** Furthest a layer slides, in canvas units (0 to 80). */
 		parallaxDistance?: number;
+		/** Drives the parallax from a scroll position instead of the cursor: 0 (top) to 1 (bottom). Leave unset to follow the cursor. */
+		scrollProgress?: number;
 		/** Recolours the artwork: `pastel` (soft), `dark`, or `subtleDark` (soft and dark). The layout is the same in every tone. */
 		tone?: PaletteTone;
 		/** Adds a fine film grain over the art. It stays still when parallax slides the layers. */
@@ -55,6 +57,7 @@
 		parallax = false,
 		parallaxPoint = 0.5,
 		parallaxDistance = 30,
+		scrollProgress,
 		tone = 'original',
 		grain = false,
 		aberration = false,
@@ -110,7 +113,10 @@
 
 	/** Where the cursor is over the background, -1 to 1 per axis from its centre. The cursor may be anywhere on the page. */
 	let cursor = $state({ x: 0, y: 0 });
-	const slide = $derived(parallaxOffset(cursor, parallaxDistance));
+	const scrollDriven = $derived(scrollProgress !== undefined);
+	// Scrolling down moves the layers as if the cursor went down the screen.
+	const position = $derived(scrollDriven ? { x: 0, y: Math.min(1, Math.max(0, scrollProgress ?? 0)) * 2 - 1 } : cursor);
+	const slide = $derived(parallaxOffset(position, parallaxDistance));
 
 	/**
 	 * Layers only ease towards the cursor once it has been placed. The first placement is instant:
@@ -140,13 +146,15 @@
 
 	// A background created after the pointer has already moved starts in the right place.
 	$effect(() => {
-		if (!parallax || !container || !lastPointer || following) return;
+		if (!parallax || !container || following) return;
+		if (scrollDriven) return startEasing();
+		if (!lastPointer) return;
 		placeCursor(lastPointer);
 		startEasing();
 	});
 </script>
 
-<svelte:window onpointermove={parallax ? followCursor : undefined} />
+<svelte:window onpointermove={parallax && !scrollDriven ? followCursor : undefined} />
 
 <!-- The artwork covers the container, centred, and runs past it by the bleed. -->
 {#snippet layerSvg(markup: string, shift: number)}

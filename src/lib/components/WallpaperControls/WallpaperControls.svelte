@@ -155,13 +155,7 @@
 	{/each}
 
 	<Field label="Palette">
-		<!-- Scrolls to the chosen palette on first show, as the list is long. -->
-		<div
-			class="palette-list"
-			role="radiogroup"
-			aria-label="Palette"
-			{@attach (list) => list.querySelector('[data-checked="true"]')?.scrollIntoView({ block: 'nearest' })}
-		>
+		<div class="palette-list" role="radiogroup" aria-label="Palette">
 			{#each palettes as { title, colors }, index (index)}
 				<SelectableItem
 					class="palette-item"
@@ -357,18 +351,11 @@
 		inset: 0;
 	}
 
-	/* The padding leaves room for each item's focus ring, which `overflow: auto` would otherwise clip. */
+	/* Never scrolls itself: the panel does, so there is no scroll area inside a scroll area. The padding leaves room for each item's focus ring. */
 	.palette-list {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		gap: 0.5rem;
-		max-height: 24rem;
-		overflow: auto;
-		/* Touch: a vertical drag scrolls the list rather than selecting. Tiles are far larger than the 44px touch minimum.
-		   Scrolling chains on to the panel once the list hits its end; `contain` here trapped the wheel inside the
-		   list, which fills much of the panel, so the panel was hard to scroll. */
-		touch-action: pan-y;
-		-webkit-overflow-scrolling: touch;
 		padding: 4px;
 	}
 
@@ -380,7 +367,7 @@
 	/* The palette's colours as equal vertical stripes. */
 	.swatches {
 		display: flex;
-		height: 8rem;
+		aspect-ratio: 3 / 2;
 	}
 
 	.swatches span {

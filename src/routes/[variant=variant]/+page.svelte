@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { MediaQuery } from 'svelte/reactivity';
 	import { Button, Padding, reducedMotion } from 'svelte-akui';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -28,6 +29,16 @@
 	const faviconColour = $derived(palette ? toneColour(palette, settings.tone) : undefined);
 
 	let controlsHidden = $state(false);
+
+	// On mobile the cursor is rarely there, so the sidebar's scroll depth drives the parallax instead.
+	const mobile = new MediaQuery('max-width: 600px');
+	let sidebarScroll = $state(0);
+
+	function trackSidebarScroll({ currentTarget }: Event) {
+		const { scrollTop, scrollHeight, clientHeight } = currentTarget as HTMLElement;
+		const scrollable = scrollHeight - clientHeight;
+		sidebarScroll = scrollable > 0 ? scrollTop / scrollable : 0;
+	}
 
 	/** Saves a 5K (desktop) or 4K portrait (mobile) PNG, arranged exactly as it looks now (minus the parallax movement). */
 	async function download() {
@@ -59,6 +70,7 @@
 		grain={settings.grain}
 		aberration={settings.aberration}
 		options={settings.options}
+		scrollProgress={mobile.current ? sidebarScroll : undefined}
 	/>
 
 	<div class="interface">
@@ -69,7 +81,7 @@
 		{:else}
 			<GlassPanel class="controls">
 				<!-- The panel clips its content (it has rounded corners), so the scrolling happens in this wrapper. -->
-				<div class="scroller">
+				<div class="scroller" onscroll={trackSidebarScroll}>
 				<Padding size="m">
 					<div class="heading">
 						<Button href={resolve('/')} icon="arrow-left" label="Variants" variant="ghost" size="small" />
@@ -131,7 +143,7 @@
 			top: auto;
 			left: 1rem;
 			width: auto;
-			max-height: 55vh;
+			height: 30dvh;
 		}
 	}
 </style>
