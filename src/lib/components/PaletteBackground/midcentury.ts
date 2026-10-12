@@ -1,13 +1,15 @@
 import type { GeneratorInput } from './canvas.js';
-import { shuffle } from './paletteUtils.js';
+import { pickOption, shuffle } from './paletteUtils.js';
 
 /** Cell widths a board picks from, in canvas units. Every cell is twice as tall as it is wide. Whole numbers, so every edge, and the arc and triangle points, land on whole units. */
 export const CELL_WIDTHS: readonly number[] = [80, 100, 120];
 /** A whole unit added to each cell's ground rectangle, so anti-aliasing leaves no seams between cells. */
 const SEAM_OVERLAP = 1;
 
-export type CellShape = 'arc' | 'triangle';
-export type CellFacing = 'left' | 'right';
+export const CELL_SHAPES = ['arc', 'triangle'] as const;
+export const CELL_FACINGS = ['left', 'right'] as const;
+export type CellShape = (typeof CELL_SHAPES)[number];
+export type CellFacing = (typeof CELL_FACINGS)[number];
 
 export interface Cell {
 	row: number;
@@ -56,7 +58,7 @@ export function inkGapFor(count: number): number {
  * never the ink of its left or upper neighbour, and its ink is never their ground, where the palette has four
  * or more colours. So a join between a ground and a shape is never one solid colour.
  */
-export function layoutCells({ colours, random, width, height }: Pick<GeneratorInput, 'colours' | 'random' | 'width' | 'height'>): CellBoard {
+export function layoutCells({ colours, random, width, height, options }: Pick<GeneratorInput, 'colours' | 'random' | 'width' | 'height' | 'options'>): CellBoard {
 	const cellWidth = pick(CELL_WIDTHS, random);
 	const cellHeight = cellWidth * 2;
 	// One spare cell each side, so the centred grid always covers the canvas.
@@ -64,8 +66,8 @@ export function layoutCells({ colours, random, width, height }: Pick<GeneratorIn
 	const rows = Math.ceil(height / cellHeight) + 2;
 	const hexes = colours.map(({ hex }) => hex);
 	// One shape and one direction for the whole image: only the colours vary from cell to cell.
-	const shape = pick<CellShape>(['arc', 'triangle'], random);
-	const facing = pick<CellFacing>(['left', 'right'], random);
+	const shape = pickOption(CELL_SHAPES, options?.shape, random);
+	const facing = pickOption(CELL_FACINGS, options?.facing, random);
 
 	// The seed only sets the order the colours repeat in; the pattern itself is fixed.
 	const order = shuffle([...hexes], random);

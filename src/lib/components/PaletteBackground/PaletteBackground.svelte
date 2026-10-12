@@ -37,6 +37,8 @@
 		grain?: boolean;
 		/** Splits red and blue slightly sideways, so edges show colour fringes. */
 		aberration?: boolean;
+		/** Fixes a variant's sub-types (see `VARIANT_OPTIONS`), by option key, instead of leaving them to the seed. */
+		options?: Record<string, string>;
 		/** Content layered above the artwork. */
 		children?: Snippet;
 		/** Optional additional CSS class names. */
@@ -54,6 +56,7 @@
 		tone = 'original',
 		grain = false,
 		aberration = false,
+		options,
 		children,
 		class: className = ''
 	}: Props = $props();
@@ -79,7 +82,7 @@
 
 	// Output is built only from our own generators and validated palette hexes, so {@html} is safe.
 	const artwork = $derived(
-		generatePaletteArt({ palette, variant, seed, idPrefix: `pb-${uniqueId}`, width: paddedWidth, height: paddedHeight, gap, depth, tone })
+		generatePaletteArt({ palette, variant, seed, idPrefix: `pb-${uniqueId}`, width: paddedWidth, height: paddedHeight, gap, depth, tone, options })
 	);
 
 	// With parallax, what stays put (`base`) and each depth layer are drawn as separate <svg>s. The

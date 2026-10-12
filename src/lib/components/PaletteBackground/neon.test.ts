@@ -12,6 +12,8 @@ import {
 	LAYERS,
 	MAIN_WIDTH,
 	MAX_HUE_SHIFT,
+	NEON_SHAPES,
+	RING_SIDES,
 	RINGS_PER_BAND,
 	RING_SPACING,
 	RING_TWIST,
@@ -82,6 +84,38 @@ describe('dashesFor', () => {
 		seeds.forEach((seed) => {
 			const [dash, gap] = dashesFor('arcs', createRandom(seed))!;
 			expect(dash).toBeGreaterThan(gap);
+		});
+	});
+});
+
+describe('neon shape option', () => {
+	const withShape = (seed: number, shape: string) => layoutNeon({ random: createRandom(seed), width, height, options: { shape } });
+	const expected = { circle: ['curve', undefined], triangle: ['sharp', 3], square: ['sharp', 4], pentagon: ['sharp', 5], hexagon: ['sharp', 6] } as const;
+
+	it('draws the shape it names, whatever the seed', () => {
+		seeds.forEach((seed) =>
+			NEON_SHAPES.forEach((shape) => {
+				const { style, sides } = withShape(seed, shape);
+				const [wantedStyle, wantedSides] = expected[shape];
+				expect(style).toBe(wantedStyle);
+				if (wantedSides) expect(sides).toBe(wantedSides);
+			})
+		);
+	});
+
+	it('covers every shape the seed can pick', () => {
+		const seeded = new Set(seeds.flatMap((seed) => [neonFor(seed)]).map(({ style, sides }) => (style === 'curve' ? 'circle' : Object.entries(expected).find(([, [, count]]) => count === sides)![0])));
+		seeded.forEach((shape) => expect(NEON_SHAPES).toContain(shape));
+		expect(NEON_SHAPES.length).toBe(1 + RING_SIDES.length);
+	});
+
+	it('leaves the rest to the seed (the same radii and turning), and ignores unknown names', () => {
+		seeds.forEach((seed) => {
+			const [plain, fixed] = [neonFor(seed), withShape(seed, 'square')];
+			expect(fixed.rotation).toBe(plain.rotation);
+			expect(fixed.rings.map(({ radius }) => radius)).toEqual(plain.rings.map(({ radius }) => radius));
+			expect(withShape(seed, 'blob').style).toBe(plain.style);
+			expect(withShape(seed, 'blob').sides).toBe(plain.sides);
 		});
 	});
 });

@@ -93,6 +93,20 @@ describe('midcentury art', () => {
 		});
 	});
 
+	it('draws the shape and facing that options fix, whatever the seed', () => {
+		const withOptions = (seed: number, options: Record<string, string>) => layoutCells({ colours, random: createRandom(seed), width, height, options });
+		seeds.forEach((seed) => {
+			['arc', 'triangle'].forEach((shape) => withOptions(seed, { shape }).cells.forEach((cell) => expect(cell.shape).toBe(shape)));
+			['left', 'right'].forEach((facing) => withOptions(seed, { facing }).cells.forEach((cell) => expect(cell.facing).toBe(facing)));
+			// What isn't fixed is still the seed's, and the colours are unchanged.
+			const [plain, fixed] = [boardFor(seed), withOptions(seed, { shape: 'arc' })];
+			expect(fixed.cells[0]!.facing).toBe(plain.cells[0]!.facing);
+			expect(fixed.cells.map(({ ground }) => ground)).toEqual(plain.cells.map(({ ground }) => ground));
+		});
+		// An unknown value leaves it to the seed.
+		expect(withOptions(2, { shape: 'nope' }).cells[0]!.shape).toBe(boardFor(2).cells[0]!.shape);
+	});
+
 	it('copes with a one-colour palette, inking in black', () => {
 		const mono: Palette = { title: 'Mono', url: null, creator: null, colors: [{ hex: '#336699', prominence: 1 }] };
 		expect(generatePaletteArt({ palette: mono, variant: 'midcentury', seed: 2 })).toContain('#000000');

@@ -37,7 +37,8 @@ const palette = {
 
 const svg = paletteSvg({
 	palette,
-	variant: 'flowers',
+	variant: 'artdeco',
+	options: { style: 'sunburst' },
 	seed: 42,
 	tone: 'pastel',
 	grain: true,
@@ -48,7 +49,7 @@ const svg = paletteSvg({
 await writeFile('wallpaper.svg', svg);
 ```
 
-The same `palette`, `variant`, `seed`, `tone`, `gap`, `grain`, `aberration` and shape always give the same SVG.
+The same `palette`, `variant`, `options`, `seed`, `tone`, `gap`, `grain`, `aberration` and shape always give the same SVG.
 
 ### `paletteSvg(options)`
 
@@ -60,6 +61,7 @@ Returns a complete `<svg>` document as a string.
 - `tone`: a `PaletteTone`, default `'original'`.
 - `gap`: borders between shapes, `0` to `0.4`, default `0`. Only `hexagons` uses it.
 - `grain`: adds a fine film grain over the art, default `false`. It only lightens, and is sized in output pixels, so it looks the same at any `width`.
+- `options`: fixes a variant's sub-types instead of leaving them to the seed, by key, for example `{ style: 'sunburst' }`. `artdeco` has `style`; `midcentury` has `shape` and `facing`; `neon` has `shape` (`circle`, `triangle`, `square`, `pentagon` or `hexagon`). `VARIANT_OPTIONS` lists the values. An unknown key or value is ignored.
 - `aberration`: chromatic aberration, default `false`. Red and blue each move 2 output pixels sideways, in opposite directions, so edges show colour fringes. The grain is not affected.
 - `width`, `height`: size of the SVG in pixels, default `1920` and `1080`.
 - `shape`: `{ width, height }`. The shape the art is laid out for, if different from `width` and `height`. The image crops to its own shape.
@@ -71,7 +73,8 @@ Returns a complete `<svg>` document as a string.
 - `generatePaletteArt({ palette, variant, seed, tone, gap, idPrefix, width, height, depth })`: only the inner markup, for a `0 0 width height` viewBox. Use `canvasSizeFor()` to get a size.
 - `canvasSizeFor(containerWidth, containerHeight)`: the canvas size for a container. Height is always `CANVAS_HEIGHT` (800). Width follows the container's ratio, clamped to 0.5 to 3 and rounded to 0.25 steps.
 - `CANVAS_WIDTH`, `CANVAS_HEIGHT`: the default canvas, 1200 by 800.
-- `PALETTE_VARIANTS`, `PaletteVariant`: `circles`, `triangles`, `diamonds`, `bands`, `flowers`, `checkerboard`, `hexagons`, `bokeh`, `mondrian`, `stripes`, `midcentury`, `80s`, `neon`.
+- `PALETTE_VARIANTS`, `PaletteVariant`: `circles`, `triangles`, `diamonds`, `bands`, `flowers`, `checkerboard`, `hexagons`, `bokeh`, `mondrian`, `stripes`, `midcentury`, `artdeco`, `80s`, `emoji-storm`, `neon`.
+- `VARIANT_OPTIONS`, `optionsFor(variant)`, `VariantOption`: the sub-types each variant lets you fix (see `options` above), as `{ key, label, values }`.
 - `PALETTE_TONES`, `PaletteTone`: `original`, `pastel`, `dark`, `subtleDark`.
 - `applyTone(markup, palette, tone)`, `buildToneMap(palette, tone)`: recolour markup, or get a `(hex) => hex` function using the same processing.
 - `PARALLAX_BLEED`: 80 canvas units.

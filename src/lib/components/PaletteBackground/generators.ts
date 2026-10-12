@@ -20,18 +20,20 @@ import { bokehArt } from './bokeh.js';
 import { mondrianArt } from './mondrian.js';
 import { stripesArt } from './stripes.js';
 import { midcenturyArt } from './midcentury.js';
+import { artDecoArt } from './artdeco.js';
 import { eightiesArt } from './eighties.js';
+import { emojiStormArt } from './emojiStorm.js';
 import { neonArt } from './neon.js';
 import { applyTone, type PaletteTone } from './tones.js';
 
 export { CANVAS_HEIGHT, CANVAS_WIDTH, canvasSizeFor, type GeneratorInput } from './canvas.js';
 export type { DepthSettings } from './depthLayers.js';
 
-export const PALETTE_VARIANTS = ['circles', 'triangles', 'diamonds', 'bands', 'flowers', 'checkerboard', 'hexagons', 'bokeh', 'mondrian', 'stripes', 'midcentury', '80s', 'neon'] as const;
+export const PALETTE_VARIANTS = ['circles', 'triangles', 'diamonds', 'bands', 'flowers', 'checkerboard', 'hexagons', 'bokeh', 'mondrian', 'stripes', 'midcentury', 'artdeco', '80s', 'emoji-storm', 'neon'] as const;
 export type PaletteVariant = (typeof PALETTE_VARIANTS)[number];
 
 /** Variants made of sized shapes, which split into depth layers for parallax. The rest move as one piece. */
-const DEPTH_VARIANTS: readonly PaletteVariant[] = ['circles', 'flowers', 'bokeh', '80s'];
+const DEPTH_VARIANTS: readonly PaletteVariant[] = ['circles', 'flowers', 'bokeh', '80s', 'emoji-storm'];
 
 /** Colours other than the base, falling back to the base for one-colour palettes. */
 function accentsOf(colours: PaletteColour[]): PaletteColour[] {
@@ -209,7 +211,9 @@ const GENERATORS: Record<PaletteVariant, (input: GeneratorInput) => string> = {
 	mondrian: mondrianArt,
 	stripes: stripesArt,
 	midcentury: midcenturyArt,
+	artdeco: artDecoArt,
 	'80s': eightiesArt,
+	'emoji-storm': emojiStormArt,
 	neon: neonArt
 };
 
@@ -226,7 +230,8 @@ export function generatePaletteArt({
 	height = CANVAS_HEIGHT,
 	gap = 0,
 	depth,
-	tone = 'original'
+	tone = 'original',
+	options
 }: {
 	palette: Palette;
 	variant: PaletteVariant;
@@ -237,12 +242,14 @@ export function generatePaletteArt({
 	height?: number;
 	/** Borders between shapes, as a share of shape size (0 to 0.4). Used by `hexagons`. */
 	gap?: number;
-	/** Parallax: `circles`, `flowers`, `bokeh` and `80s` split into depth layers, other variants slide as one piece. */
+	/** Parallax: `circles`, `flowers`, `bokeh`, `80s` and `emoji-storm` split into depth layers, other variants slide as one piece. */
 	depth?: DepthSettings;
 	/** Recolours the finished art (softer, darker). The layout is the same in every tone. */
 	tone?: PaletteTone;
+	/** Fixes sub-types (`artdeco`, `midcentury`, `emoji-storm` and `neon` have them; see `VARIANT_OPTIONS`) instead of leaving them to the seed. */
+	options?: Record<string, string>;
 }): string {
-	const original = GENERATORS[variant]({ colours: normalisePalette(palette), random: createRandom(seed), seed, idPrefix, width, height, gap, depth });
+	const original = GENERATORS[variant]({ colours: normalisePalette(palette), random: createRandom(seed), seed, idPrefix, width, height, gap, depth, options });
 	const art = applyTone(original, palette, tone);
 	// Variants without their own depth layers slide as one piece when parallax is on.
 	return depth?.parallaxPoint === undefined || DEPTH_VARIANTS.includes(variant) ? art : wholeCanvasLayer(art);

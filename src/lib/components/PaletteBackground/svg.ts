@@ -36,6 +36,8 @@ export interface PaletteSvgOptions {
 	grain?: boolean;
 	/** Splits red and blue slightly sideways, so edges show colour fringes. */
 	aberration?: boolean;
+	/** Fixes a variant's sub-types (see `VARIANT_OPTIONS`) instead of leaving them to the seed. */
+	options?: Record<string, string>;
 }
 
 /**
@@ -56,7 +58,8 @@ export function paletteSvg({
 	bleed = false,
 	idPrefix = 'palette-art',
 	grain = false,
-	aberration = false
+	aberration = false,
+	options
 }: PaletteSvgOptions): string {
 	const canvas = canvasSizeFor(shape.width, shape.height);
 	const margin = bleed ? PARALLAX_BLEED : 0;
@@ -67,6 +70,7 @@ export function paletteSvg({
 		tone,
 		gap,
 		idPrefix,
+		options,
 		width: canvas.width + margin * 2,
 		height: canvas.height + margin * 2
 	});

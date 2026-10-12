@@ -1,5 +1,6 @@
 import { PALETTE_VARIANTS, type PaletteVariant } from '#lib/components/PaletteBackground/generators.js';
 import { PALETTE_TONES, type PaletteTone } from '#lib/components/PaletteBackground/tones.js';
+import { isOptionValue, optionsFor } from '#lib/components/PaletteBackground/variantOptions.js';
 
 /** Everything that defines a wallpaper. All of it round-trips through the URL, so a link recreates the wallpaper exactly. */
 export interface WallpaperSettings {
@@ -14,6 +15,11 @@ export interface WallpaperSettings {
 	grain: boolean;
 	/** Chromatic aberration: red and blue fringes along edges, on every variant. */
 	aberration: boolean;
+	/**
+	 * Sub-types fixed by the user, by option key (see `VARIANT_OPTIONS`), for the variant's own options only.
+	 * An option not here is left to the seed.
+	 */
+	options: Record<string, string>;
 }
 
 export const SEED_MAX = 999_999;
@@ -25,10 +31,14 @@ export const DEFAULT_SETTINGS: Omit<WallpaperSettings, 'variant'> = {
 	tone: 'original',
 	gap: 0,
 	grain: false,
-	aberration: false
+	aberration: false,
+	options: {}
 };
 
-/** Short query keys, to keep the hash readable and compact. */
+/**
+ * Short query keys, to keep the hash readable and compact. A variant's own options (`VARIANT_OPTIONS`) are in the
+ * query under their own key names, which differ from these.
+ */
 const KEYS = {
 	paletteIndex: 'p',
 	seed: 's',
@@ -78,8 +88,19 @@ export function readSettings({ variant, params, paletteCount }: {
 		tone: isTone(tone) ? tone : DEFAULT_SETTINGS.tone,
 		gap: numberParam({ params, key: KEYS.gap, fallback: DEFAULT_SETTINGS.gap, min: 0, max: 0.4 }),
 		grain: params.get(KEYS.grain) === 'true',
-		aberration: params.get(KEYS.aberration) === 'true'
+		aberration: params.get(KEYS.aberration) === 'true',
+		options: readOptions({ variant, params })
 	};
+}
+
+/** The variant's options that the query sets to one of their real values. Anything else is ignored, so a hand-edited link never breaks the page. */
+function readOptions({ variant, params }: { variant: PaletteVariant; params: QueryParams }): Record<string, string> {
+	return Object.fromEntries(
+		optionsFor(variant).flatMap((option) => {
+			const value = params.get(option.key) ?? '';
+			return isOptionValue(option, value) ? [[option.key, value]] : [];
+		})
+	);
 }
 
 /** The query string for a wallpaper (with its leading `?`), or an empty string when everything is default. The variant lives in the path, not here. */
@@ -89,6 +110,11 @@ export function toQueryString(settings: WallpaperSettings): string {
 		const value = settings[name];
 		if (value === DEFAULT_SETTINGS[name]) return;
 		params.set(KEYS[name], String(value));
+	});
+	// Only the current variant's options, so switching variant doesn't carry the last one's choices along.
+	optionsFor(settings.variant).forEach((option) => {
+		const value = settings.options[option.key];
+		if (value !== undefined && isOptionValue(option, value)) params.set(option.key, value);
 	});
 	const query = params.toString();
 	return query ? `?${query}` : '';

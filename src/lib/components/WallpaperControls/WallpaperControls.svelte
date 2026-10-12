@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { cubicInOut } from 'svelte/easing';
 	import { fade } from 'svelte/transition';
-	import { Button, FeedbackButton, Field, InputGroup, SelectableItem, TextInput, motion } from 'svelte-akui';
+	import { Button, FeedbackButton, Field, Icon, InputGroup, SelectableItem, TextInput, motion } from 'svelte-akui';
 	import { WIPE_DURATION, hold } from '#lib/transitions/wipe.js';
 	import PaletteBackground from '#lib/components/PaletteBackground/PaletteBackground.svelte';
 	import { PALETTE_VARIANTS } from '#lib/components/PaletteBackground/generators.js';
 	import type { Palette } from '#lib/components/PaletteBackground/paletteUtils.js';
+	import { optionsFor } from '#lib/components/PaletteBackground/variantOptions.js';
 	import { toneLabel, toneSwatches } from '#lib/wallpaper/toneSwatches.js';
 	import { SEED_MAX, type WallpaperSettings } from '#lib/wallpaper/wallpaperSettings.js';
 
@@ -27,6 +28,19 @@
 	const swatches = $derived(toneSwatches(currentPalette));
 
 	const newSeed = () => onchange({ seed: 1 + Math.floor(Math.random() * SEED_MAX) });
+
+	const variantOptions = $derived(optionsFor(settings.variant));
+
+	/** The current options with `key` set to `value`; an empty value puts the choice back with the seed, by leaving it out. */
+	function optionsWith(key: string, value: string): Record<string, string> {
+		const { [key]: _removed, ...rest } = settings.options;
+		return value ? { ...rest, [key]: value } : rest;
+	}
+
+	const setOption = (key: string, value: string) => onchange({ options: optionsWith(key, value) });
+
+	/** `subtleDark` -> `Subtle dark`; `sharp` -> `Sharp`. */
+	const sentenceCase = (name: string) => name.replace(/([A-Z])/g, ' $1').replace(/^./, (first) => first.toUpperCase()).replace(/ ([A-Z])/g, (_, letter: string) => ` ${letter.toLowerCase()}`);
 </script>
 
 {#snippet slider({ id, label, value, min, max, step, key }: {
@@ -75,6 +89,46 @@
 			{/each}
 		</div>
 	</Field>
+
+	<!-- The sub-types this variant would otherwise pick from the seed. Left on "From seed", the seed decides. -->
+	{#each variantOptions as { key, label, values, glyphs } (key)}
+		<Field {label}>
+			<div class="variant-grid" role="radiogroup" aria-label={label}>
+				<!-- Each tile previews this variant with that sub-type fixed (and the other options as they are now). The first leaves it to the seed. -->
+				{#each ['', ...values] as value (value)}
+					<SelectableItem
+						name="{uniqueId}-option-{key}"
+						{value}
+						group={settings.options[key] ?? ''}
+						onchange={() => setOption(key, value)}
+					>
+						<span class="variant-preview" aria-hidden="true">
+							{#if value === ''}
+								<!-- No preview: this tile means "the seed decides", which a dice says better than any one result. -->
+								<span class="seed-tile"><Icon name="dice-5" size="1.5rem" /></span>
+							{:else if glyphs}
+								<!-- Glyph options are shown as themselves: a preview of the art would look much the same each time. -->
+								<span class="seed-tile glyph-tile">{value}</span>
+							{:else}
+								{#key `${currentPalette.title}|${settings.tone}|${settings.seed}`}
+									<span class="variant-layer" in:fade={motion({ duration: WIPE_DURATION, easing: cubicInOut })} out:hold={motion({ duration: WIPE_DURATION })}>
+										<PaletteBackground
+											palette={currentPalette}
+											variant={settings.variant}
+											tone={settings.tone}
+											seed={settings.seed}
+											options={optionsWith(key, value)}
+										/>
+									</span>
+								{/key}
+							{/if}
+						</span>
+						<span class="sr-only">{value ? sentenceCase(value) : 'From seed'}</span>
+					</SelectableItem>
+				{/each}
+			</div>
+		</Field>
+	{/each}
 
 	<Field label="Palette">
 		<!-- Scrolls to the chosen palette on first show, as the list is long. -->
@@ -258,6 +312,19 @@
 		position: relative;
 		display: block;
 		height: 3.5rem;
+	}
+
+	/* The "seed decides" tile: an icon on a plain ground, the height of a preview. */
+	.seed-tile {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
+		background: var(--akui-bg-secondary);
+	}
+
+	.glyph-tile {
+		font-size: 1.75rem;
 	}
 
 	/* Old and new previews overlap while crossfading. */

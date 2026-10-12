@@ -1,5 +1,17 @@
 [
 	{
+		"title": "Terra?",
+		"url": "https://www.colourlovers.com/palette/292482/Terra",
+		"creator": "GlueStudio",
+		"colors": [
+			{ "hex": "#E8DDCB", "prominence": 5.0 },
+			{ "hex": "#CDB380", "prominence": 6.0 },
+			{ "hex": "#036564", "prominence": 6.0 },
+			{ "hex": "#033649", "prominence": 14.0 },
+			{ "hex": "#031634", "prominence": 69.0 }
+		]
+	},
+	{
 		"title": "Giant Goldfish",
 		"url": "https://www.colourlovers.com/palette/92095/Giant-Goldfish",
 		"creator": "manekineko",
@@ -69,18 +81,6 @@
 			{ "hex": "#F1D4AF", "prominence": 20.0 },
 			{ "hex": "#ECE5CE", "prominence": 20.0 },
 			{ "hex": "#C5E0DC", "prominence": 20.0 }
-		]
-	},
-	{
-		"title": "Terra?",
-		"url": "https://www.colourlovers.com/palette/292482/Terra",
-		"creator": "GlueStudio",
-		"colors": [
-			{ "hex": "#E8DDCB", "prominence": 5.0 },
-			{ "hex": "#CDB380", "prominence": 6.0 },
-			{ "hex": "#036564", "prominence": 6.0 },
-			{ "hex": "#033649", "prominence": 14.0 },
-			{ "hex": "#031634", "prominence": 69.0 }
 		]
 	},
 	{

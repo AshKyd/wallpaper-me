@@ -57,6 +57,7 @@
 		gap={settings.gap}
 		grain={settings.grain}
 		aberration={settings.aberration}
+		options={settings.options}
 	/>
 
 	<div class="interface">

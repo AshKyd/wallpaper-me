@@ -113,7 +113,9 @@
 <Story name="Mondrian" asChild>{@render gallery('mondrian')}</Story>
 <Story name="Stripes" asChild>{@render gallery('stripes')}</Story>
 <Story name="Mid-century" asChild>{@render gallery('midcentury')}</Story>
+<Story name="Art deco" asChild>{@render gallery('artdeco')}</Story>
 <Story name="80s" asChild>{@render gallery('80s')}</Story>
+<Story name="Emoji Storm" asChild>{@render gallery('emoji-storm')}</Story>
 <Story name="Neon" asChild>{@render gallery('neon')}</Story><Story name="Checkerboard motifs" asChild>
 	<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem;">
 		{#each checkerMotifs as { name, markup } (name)}
@@ -173,7 +175,9 @@
 <Story name="Tones: mondrian" asChild>{@render toneRows('mondrian')}</Story>
 <Story name="Tones: stripes" asChild>{@render toneRows('stripes')}</Story>
 <Story name="Tones: mid-century" asChild>{@render toneRows('midcentury')}</Story>
+<Story name="Tones: art deco" asChild>{@render toneRows('artdeco')}</Story>
 <Story name="Tones: 80s" asChild>{@render toneRows('80s')}</Story>
+<Story name="Tones: Emoji Storm" asChild>{@render toneRows('emoji-storm')}</Story>
 <Story name="Tones: neon" asChild>{@render toneRows('neon')}</Story><!-- Every variant for every colour scheme: one row per palette. -->
 <Story name="All variants" asChild>
 	<div style="display: flex; flex-direction: column; gap: 2rem;">

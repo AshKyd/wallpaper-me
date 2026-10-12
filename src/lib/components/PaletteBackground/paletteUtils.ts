@@ -134,6 +134,16 @@ export function sampleRamp(rampHexes: string[], position: number): string {
 	return mixHex(rampHexes[lowerIndex]!, rampHexes[lowerIndex + 1]!, scaled - lowerIndex);
 }
 
+/**
+ * A choice among `values` that a user can fix: `wanted` if it is one of them, otherwise the seed's pick.
+ * The seeded pick is always drawn, even when it is overridden, so the rest of the artwork keeps the same
+ * random stream and only the option changes.
+ */
+export function pickOption<T extends string>(values: readonly T[], wanted: string | undefined, random: () => number): T {
+	const seeded = values[Math.floor(random() * values.length)]!;
+	return values.find((value) => value === wanted) ?? seeded;
+}
+
 export function randomBetween(random: () => number, min: number, max: number): number {
 	return min + random() * (max - min);
 }

@@ -17,6 +17,20 @@ export const RING_SPACING: readonly [number, number] = [17, 26];
 export const BAND_GAP: readonly [number, number] = [34, 90];
 /** Sides of a sharp ring (a triangle to a hexagon); a curved ring is a circle, sampled this many times. */
 export const RING_SIDES: readonly number[] = [3, 4, 5, 6];
+
+/** The shapes a ring can be, by name: a circle, or a regular polygon with this many sides. These are every shape the seed picks from. */
+export const NEON_SHAPES = ['circle', 'triangle', 'square', 'pentagon', 'hexagon'] as const;
+export type NeonShape = (typeof NEON_SHAPES)[number];
+const SHAPE_SIDES: Record<Exclude<NeonShape, 'circle'>, number> = { triangle: 3, square: 4, pentagon: 5, hexagon: 6 };
+
+/**
+ * The line style for a shape name, and its number of sides (not for a circle, which has none to set: the seed's
+ * count is still used to stagger rings in the `alternate` rotation). Nothing for a name that isn't a shape.
+ */
+export function shapeFor(name: string | undefined): { style: LineStyle; sides?: number } | undefined {
+	if (name === 'circle') return { style: 'curve' };
+	return name !== undefined && name in SHAPE_SIDES ? { style: 'sharp', sides: SHAPE_SIDES[name as keyof typeof SHAPE_SIDES] } : undefined;
+}
 const CURVE_SAMPLES = 72;
 /** How far past the canvas's corners the outer ring must reach, in canvas units. */
 const REACH_MARGIN = 40;
@@ -157,10 +171,14 @@ export function dashesFor(pattern: BandPattern, random: () => number): readonly 
  * interlace and circles start their dashes in different places. Nothing leaves the rings: it is one shape,
  * growing outwards from the centre.
  */
-export function layoutNeon({ random, width, height }: Pick<GeneratorInput, 'random' | 'width' | 'height'>): NeonRings {
-	const style = pick<LineStyle>(['sharp', 'curve'], random);
+export function layoutNeon({ random, width, height, options }: Pick<GeneratorInput, 'random' | 'width' | 'height' | 'options'>): NeonRings {
+	// The `shape` option fixes the ring's shape. The seed's pick is still drawn, so everything else stays the same.
+	const seededStyle = pick<LineStyle>(['sharp', 'curve'], random);
 	const centre: Point = [width / 2, height / 2];
-	const [sides, turn] = [pick(RING_SIDES, random), random() * Math.PI * 2];
+	const [seededSides, turn] = [pick(RING_SIDES, random), random() * Math.PI * 2];
+	const shape = shapeFor(options?.shape);
+	const style = shape?.style ?? seededStyle;
+	const sides = shape?.sides ?? seededSides;
 	const rotation = pick(ROTATION_MODES, random);
 	const [bandTwist, ringTwistSign] = [(random() < 0.5 ? -1 : 1) * radians(between(random, BAND_TWIST)), random() < 0.5 ? -1 : 1];
 	const [thicknessMode, thicknessUp] = [pick(THICKNESS_MODES, random), random() < 0.5];

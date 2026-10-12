@@ -12,6 +12,7 @@ export {
 	type GeneratorInput,
 	type DepthSettings
 } from './components/PaletteBackground/generators.js';
+export { VARIANT_OPTIONS, optionsFor, type VariantOption } from './components/PaletteBackground/variantOptions.js';
 export { PALETTE_TONES, applyTone, buildToneMap, type PaletteTone } from './components/PaletteBackground/tones.js';
 export { PARALLAX_BLEED } from './components/PaletteBackground/parallax.js';
 export { splitLayers, type ArtLayer } from './components/PaletteBackground/depthLayers.js';

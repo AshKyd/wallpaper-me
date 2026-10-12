@@ -24,6 +24,11 @@ export interface GeneratorInput {
 	height: number;
 	/** Space between shapes as a share of their size (0 for none). Only some variants use it. */
 	gap?: number;
+	/**
+	 * Fixes the sub-types a variant would otherwise pick from the seed, by option key (see `VARIANT_OPTIONS`).
+	 * A missing or unknown value leaves that choice to the seed.
+	 */
+	options?: Record<string, string>;
 	/** Parallax depth layers for `circles` and `flowers`. Other generators ignore it (`generatePaletteArt` moves them as one piece). */
 	depth?: DepthSettings;
 }

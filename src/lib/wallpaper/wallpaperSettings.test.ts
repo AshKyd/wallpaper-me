@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PALETTE_VARIANTS } from '#lib/components/PaletteBackground/generators.js';
 import { VARIANT_NAMES } from '../../params/index.js';
+import { optionsFor } from '#lib/components/PaletteBackground/variantOptions.js';
 import { DEFAULT_SETTINGS, SEED_MAX, isVariant, readSettings, toQueryString, type WallpaperSettings } from './wallpaperSettings.js';
 
 const read = (query: string, paletteCount = 10) =>
@@ -19,10 +20,41 @@ describe('wallpaperSettings', () => {
 			tone: 'pastel',
 			gap: 0.12,
 			grain: true,
-			aberration: true
+			aberration: true,
+			options: {}
 		};
 		const query = toQueryString(settings);
 		expect(readSettings({ variant: 'hexagons', params: new URLSearchParams(query), paletteCount: 10 })).toEqual(settings);
+	});
+
+	describe('sub-type options', () => {
+		it('round-trips a variant\'s options through the query string, under their own names', () => {
+			const settings: WallpaperSettings = { variant: 'midcentury', ...DEFAULT_SETTINGS, options: { shape: 'triangle', facing: 'left' } };
+			const query = toQueryString(settings);
+			expect(query).toBe('?shape=triangle&facing=left');
+			expect(readSettings({ variant: 'midcentury', params: new URLSearchParams(query), paletteCount: 10 })).toEqual(settings);
+		});
+
+		it('has options for art deco, mid-century and neon', () => {
+			expect(optionsFor('artdeco').map(({ key }) => key)).toEqual(['style']);
+			expect(optionsFor('midcentury').map(({ key }) => key)).toEqual(['shape', 'facing']);
+			expect(optionsFor('neon').map(({ key }) => key)).toEqual(['shape']);
+			expect(optionsFor('neon')[0]!.values).toEqual(['circle', 'triangle', 'square', 'pentagon', 'hexagon']);
+			expect(optionsFor('circles')).toEqual([]);
+		});
+
+		it('ignores unknown values, and options that belong to another variant', () => {
+			expect(read('style=nope').options).toEqual({});
+			// `style` is art deco's; a circles page has no such option.
+			expect(read('style=sunburst').options).toEqual({});
+			const artDeco = readSettings({ variant: 'artdeco', params: new URLSearchParams('style=sunburst&shape=arc'), paletteCount: 10 });
+			expect(artDeco.options).toEqual({ style: 'sunburst' });
+		});
+
+		it('drops the options of the variant you left when writing the query', () => {
+			const query = toQueryString({ variant: 'artdeco', ...DEFAULT_SETTINGS, options: { style: 'peacock', shape: 'arc' } });
+			expect(query).toBe('?style=peacock');
+		});
 	});
 
 	it('leaves default values out of the URL', () => {
