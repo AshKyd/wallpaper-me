@@ -2,7 +2,7 @@
 
 Makes wallpapers from colour palettes. It is two things:
 
-- A single page app at `wallpapers.kyd.au` where you pick a style, then change the palette, tone and seed. The settings are in the URL, so a link recreates the wallpaper. See [devdocs/wallpaper-maker.md](devdocs/wallpaper-maker.md).
+- A single page app at `wallpapers.kyd.au` where you pick a style, then change the palette, tone and seed, and turn grain and chromatic aberration on or off. The settings are in the URL, so a link recreates the wallpaper. See [devdocs/wallpaper-maker.md](devdocs/wallpaper-maker.md).
 - A library that turns a palette into an SVG. It has no Svelte or browser dependency and runs in Node.
 
 ## Library
@@ -35,11 +35,20 @@ const palette = {
 	]
 };
 
-const svg = paletteSvg({ palette, variant: 'hexagons', seed: 42, tone: 'pastel', width: 3840, height: 2160 });
+const svg = paletteSvg({
+	palette,
+	variant: 'flowers',
+	seed: 42,
+	tone: 'pastel',
+	grain: true,
+	aberration: true,
+	width: 3840,
+	height: 2160
+});
 await writeFile('wallpaper.svg', svg);
 ```
 
-The same `palette`, `variant`, `seed`, `tone`, `gap` and shape always give the same SVG.
+The same `palette`, `variant`, `seed`, `tone`, `gap`, `grain`, `aberration` and shape always give the same SVG.
 
 ### `paletteSvg(options)`
 
@@ -50,6 +59,8 @@ Returns a complete `<svg>` document as a string.
 - `seed`: number, default `1`.
 - `tone`: a `PaletteTone`, default `'original'`.
 - `gap`: borders between shapes, `0` to `0.4`, default `0`. Only `hexagons` uses it.
+- `grain`: adds a fine film grain over the art, default `false`. It only lightens, and is sized in output pixels, so it looks the same at any `width`.
+- `aberration`: chromatic aberration, default `false`. Red and blue each move 2 output pixels sideways, in opposite directions, so edges show colour fringes. The grain is not affected.
 - `width`, `height`: size of the SVG in pixels, default `1920` and `1080`.
 - `shape`: `{ width, height }`. The shape the art is laid out for, if different from `width` and `height`. The image crops to its own shape.
 - `bleed`: draws `PARALLAX_BLEED` extra on every side, then crops back. Set it to match a screen that has parallax on, as that changes the layout.

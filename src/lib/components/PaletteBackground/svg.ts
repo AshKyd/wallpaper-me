@@ -1,4 +1,6 @@
 import { canvasSizeFor, generatePaletteArt, type PaletteVariant } from './generators.js';
+import { aberrationFilter, aberrationOffset } from './aberration.js';
+import { grainMarkup } from './grain.js';
 import { PARALLAX_BLEED } from './parallax.js';
 import type { Palette } from './paletteUtils.js';
 import type { PaletteTone } from './tones.js';
@@ -30,6 +32,10 @@ export interface PaletteSvgOptions {
 	bleed?: boolean;
 	/** Prefix for the `id`s inside the SVG (gradients, filters). Give each SVG on one page a different one. */
 	idPrefix?: string;
+	/** Adds a fine film grain over the art. */
+	grain?: boolean;
+	/** Splits red and blue slightly sideways, so edges show colour fringes. */
+	aberration?: boolean;
 }
 
 /**
@@ -48,7 +54,9 @@ export function paletteSvg({
 	height = 1080,
 	shape = { width, height },
 	bleed = false,
-	idPrefix = 'palette-art'
+	idPrefix = 'palette-art',
+	grain = false,
+	aberration = false
 }: PaletteSvgOptions): string {
 	const canvas = canvasSizeFor(shape.width, shape.height);
 	const margin = bleed ? PARALLAX_BLEED : 0;
@@ -62,5 +70,13 @@ export function paletteSvg({
 		width: canvas.width + margin * 2,
 		height: canvas.height + margin * 2
 	});
-	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${margin} ${margin} ${canvas.width} ${canvas.height}" preserveAspectRatio="xMidYMid slice">${art}</svg>`;
+	// Drawn last, over the visible canvas only. `slice` scales by the larger ratio, so the grain is sized to match.
+	const pixelsPerUnit = Math.max(width / canvas.width, height / canvas.height);
+	const grainLayer = grain ? grainMarkup({ id: `${idPrefix}-grain`, x: margin, y: margin, width: canvas.width, height: canvas.height, pixelsPerUnit }) : '';
+	// Fringing goes on the art alone, so the grain stays neutral grey on top.
+	const aberrationId = `${idPrefix}-aberration`;
+	const fringed = aberration
+		? `<defs>${aberrationFilter({ id: aberrationId, offset: aberrationOffset(pixelsPerUnit) })}</defs><g filter="url(#${aberrationId})">${art}</g>`
+		: art;
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${margin} ${margin} ${canvas.width} ${canvas.height}" preserveAspectRatio="xMidYMid slice">${fringed}${grainLayer}</svg>`;
 }

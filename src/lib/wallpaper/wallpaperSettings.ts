@@ -10,6 +10,10 @@ export interface WallpaperSettings {
 	tone: PaletteTone;
 	/** Border between shapes, 0 to 0.4. Only `hexagons` uses it. */
 	gap: number;
+	/** A fine film grain over the art, on every variant. */
+	grain: boolean;
+	/** Chromatic aberration: red and blue fringes along edges, on every variant. */
+	aberration: boolean;
 }
 
 export const SEED_MAX = 999_999;
@@ -19,7 +23,9 @@ export const DEFAULT_SETTINGS: Omit<WallpaperSettings, 'variant'> = {
 	paletteIndex: 0,
 	seed: 1,
 	tone: 'original',
-	gap: 0
+	gap: 0,
+	grain: false,
+	aberration: false
 };
 
 /** Short query keys, to keep the hash readable and compact. */
@@ -27,7 +33,9 @@ const KEYS = {
 	paletteIndex: 'p',
 	seed: 's',
 	tone: 't',
-	gap: 'g'
+	gap: 'g',
+	grain: 'n',
+	aberration: 'a'
 } as const;
 
 export function isVariant(value: string): value is PaletteVariant {
@@ -68,7 +76,9 @@ export function readSettings({ variant, params, paletteCount }: {
 		paletteIndex: numberParam({ params, key: KEYS.paletteIndex, fallback: DEFAULT_SETTINGS.paletteIndex, min: 0, max: Math.max(0, paletteCount - 1), whole: true }),
 		seed: numberParam({ params, key: KEYS.seed, fallback: DEFAULT_SETTINGS.seed, min: 1, max: SEED_MAX, whole: true }),
 		tone: isTone(tone) ? tone : DEFAULT_SETTINGS.tone,
-		gap: numberParam({ params, key: KEYS.gap, fallback: DEFAULT_SETTINGS.gap, min: 0, max: 0.4 })
+		gap: numberParam({ params, key: KEYS.gap, fallback: DEFAULT_SETTINGS.gap, min: 0, max: 0.4 }),
+		grain: params.get(KEYS.grain) === 'true',
+		aberration: params.get(KEYS.aberration) === 'true'
 	};
 }
 

@@ -9,7 +9,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { canvasSizeFor, generatePaletteArt, type DepthSettings, type PaletteVariant } from './generators.js';
+	import { aberrationFilter, aberrationOffset } from './aberration.js';
 	import { splitLayers } from './depthLayers.js';
+	import { grainMarkup } from './grain.js';
 	import { PARALLAX_BLEED, parallaxOffset, pointerPosition } from './parallax.js';
 	import type { Palette } from './paletteUtils.js';
 	import type { PaletteTone } from './tones.js';
@@ -31,6 +33,10 @@
 		parallaxDistance?: number;
 		/** Recolours the artwork: `pastel` (soft), `dark`, or `subtleDark` (soft and dark). The layout is the same in every tone. */
 		tone?: PaletteTone;
+		/** Adds a fine film grain over the art. It stays still when parallax slides the layers. */
+		grain?: boolean;
+		/** Splits red and blue slightly sideways, so edges show colour fringes. */
+		aberration?: boolean;
 		/** Content layered above the artwork. */
 		children?: Snippet;
 		/** Optional additional CSS class names. */
@@ -46,11 +52,14 @@
 		parallaxPoint = 0.5,
 		parallaxDistance = 30,
 		tone = 'original',
+		grain = false,
+		aberration = false,
 		children,
 		class: className = ''
 	}: Props = $props();
 
 	const uniqueId = $props.id();
+	const aberrationId = `pb-${uniqueId}-aberration`;
 
 	/** Container size, bound below. Zero until measured, which gives the default 3:2 canvas. */
 	let containerWidth = $state(0);
@@ -146,25 +155,44 @@
 {/snippet}
 
 <div class="palette-background {className}" bind:this={container} bind:clientWidth={containerWidth} bind:clientHeight={containerHeight}>
-	{#if parts}
-		<div class="palette-background-stack" class:following style:--parallax-x="{slide.x * pixelsPerUnit}px" style:--parallax-y="{slide.y * pixelsPerUnit}px">
-			{#if parts.base.trim()}
-				{@render layerSvg(parts.base, 0)}
-			{/if}
-			{#each parts.layers as { shift, markup }, index (index)}
-				{@render layerSvg(markup, shift)}
-			{/each}
-		</div>
-	{:else}
-		<svg
-			class="palette-background-art"
-			viewBox="0 0 {width} {height}"
-			preserveAspectRatio="xMidYMid slice"
-			aria-hidden="true"
-			xmlns="http://www.w3.org/2000/svg"
-		>
-			<!-- eslint-disable-next-line svelte/no-at-html-tags -- markup comes only from our generators -->
-			{@html artwork}
+	{#if aberration && containerWidth}
+		<!-- Only holds the filter; the fringing is applied to the wrapper below, in screen pixels. -->
+		<svg class="palette-background-filters" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+			<defs>
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- markup comes only from our own aberration module -->
+				{@html aberrationFilter({ id: aberrationId, offset: aberrationOffset() })}
+			</defs>
+		</svg>
+	{/if}
+	<!-- The filter sits on the whole stack, not on each sliding layer, so it runs on the composite and the fringes stay aligned. -->
+	<div class="palette-background-fringe" style:filter={aberration && containerWidth ? `url(#${aberrationId})` : undefined}>
+		{#if parts}
+			<div class="palette-background-stack" class:following style:--parallax-x="{slide.x * pixelsPerUnit}px" style:--parallax-y="{slide.y * pixelsPerUnit}px">
+				{#if parts.base.trim()}
+					{@render layerSvg(parts.base, 0)}
+				{/if}
+				{#each parts.layers as { shift, markup }, index (index)}
+					{@render layerSvg(markup, shift)}
+				{/each}
+			</div>
+		{:else}
+			<svg
+				class="palette-background-art"
+				viewBox="0 0 {width} {height}"
+				preserveAspectRatio="xMidYMid slice"
+				aria-hidden="true"
+				xmlns="http://www.w3.org/2000/svg"
+			>
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- markup comes only from our generators -->
+				{@html artwork}
+			</svg>
+		{/if}
+	</div>
+	{#if grain && containerWidth && containerHeight}
+		<!-- Sized to the container in screen pixels, so the grain is the same fineness at every size and doesn't slide with the layers. -->
+		<svg class="palette-background-grain" viewBox="0 0 {containerWidth} {containerHeight}" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -- markup comes only from our own grain module -->
+			{@html grainMarkup({ id: `pb-${uniqueId}-grain`, width: containerWidth, height: containerHeight })}
 		</svg>
 	{/if}
 	{#if children}
@@ -178,6 +206,20 @@
 		width: 100%;
 		height: 100%;
 		overflow: hidden;
+		/* Keeps the grain's blend inside the artwork rather than blending with the page behind. */
+		isolation: isolate;
+	}
+
+	/* Wraps the art so one filter can cover it; the layers inside may run past it (parallax bleed), which the filter still includes. */
+	.palette-background-fringe {
+		position: absolute;
+		inset: 0;
+	}
+
+	.palette-background-filters {
+		position: absolute;
+		width: 0;
+		height: 0;
 	}
 
 	.palette-background-art,
@@ -214,6 +256,15 @@
 
 	:global(html[data-reduced-motion='true']) .palette-background-layer {
 		transform: none;
+	}
+
+	.palette-background-grain {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		display: block;
+		pointer-events: none;
 	}
 
 	.palette-background-content {

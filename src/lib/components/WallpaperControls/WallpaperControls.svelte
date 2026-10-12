@@ -146,6 +146,14 @@
 	{#if settings.variant === 'hexagons' || settings.variant === 'mondrian'}
 		{@render slider({ id: 'gap', label: 'Border', value: settings.gap, min: 0, max: 0.4, step: 0.02, key: 'gap' })}
 	{/if}
+	<label class="grain-toggle">
+		<input type="checkbox" checked={settings.grain} onchange={(event) => onchange({ grain: event.currentTarget.checked })} />
+		Grain
+	</label>
+	<label class="grain-toggle">
+		<input type="checkbox" checked={settings.aberration} onchange={(event) => onchange({ aberration: event.currentTarget.checked })} />
+		Chromatic aberration
+	</label>
 	<!-- Parallax has no controls: it is always on unless Reduced Motion is. -->
 
 	<FeedbackButton class="download" variant="accent" icon="download" label="Download wallpaper" errorAriaLabel="Download failed" onclick={ondownload} />
@@ -182,6 +190,14 @@
 
 	.wallpaper-controls :global(.download) {
 		width: 100%;
+	}
+
+	.grain-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0 4px;
+		cursor: pointer;
 	}
 
 	input[type='range'] {

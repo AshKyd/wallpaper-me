@@ -55,6 +55,8 @@
 		seed={settings.seed}
 		tone={settings.tone}
 		gap={settings.gap}
+		grain={settings.grain}
+		aberration={settings.aberration}
 	/>
 
 	<div class="interface">

@@ -40,6 +40,8 @@ export function buildWallpaperSvg({ settings, palette, width, height, viewportWi
 		seed: settings.seed,
 		tone: settings.tone,
 		gap: settings.gap,
+		grain: settings.grain,
+		aberration: settings.aberration,
 		width,
 		height,
 		shape: { width: viewportWidth, height: viewportHeight },

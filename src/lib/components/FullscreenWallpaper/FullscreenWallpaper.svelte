@@ -12,9 +12,11 @@
 		seed?: number;
 		tone?: PaletteTone;
 		gap?: number;
+		grain?: boolean;
+		aberration?: boolean;
 	}
 
-	let { palette, variant, seed = 1, tone = 'original', gap = 0 }: Props = $props();
+	let { palette, variant, seed = 1, tone = 'original', gap = 0, grain = false, aberration = false }: Props = $props();
 
 	// Parallax is always on, except when the user has asked for reduced motion (system setting or akui override).
 	const parallax = $derived(!reducedMotion.value);
@@ -29,7 +31,7 @@
 	{#key lookKey}
 		<!-- Old and new are both on screen during the wipe. The new one is later in the DOM, so it sits on top. -->
 		<div class="fullscreen-wallpaper" in:wipe={motion({ duration: 800 })} out:hold={motion({ duration: 800 })}>
-			<PaletteBackground {palette} {variant} {seed} {tone} {gap} {parallax} />
+			<PaletteBackground {palette} {variant} {seed} {tone} {gap} {grain} {aberration} {parallax} />
 		</div>
 	{/key}
 </div>

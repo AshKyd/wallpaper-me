@@ -17,7 +17,9 @@ describe('wallpaperSettings', () => {
 			paletteIndex: 4,
 			seed: 1234,
 			tone: 'pastel',
-			gap: 0.12
+			gap: 0.12,
+			grain: true,
+			aberration: true
 		};
 		const query = toQueryString(settings);
 		expect(readSettings({ variant: 'hexagons', params: new URLSearchParams(query), paletteCount: 10 })).toEqual(settings);
