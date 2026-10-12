@@ -31,7 +31,8 @@ export const VARIANT_OPTIONS: Partial<Record<PaletteVariant, readonly VariantOpt
 		{ key: 'facing', label: 'Facing', values: CELL_FACINGS }
 	],
 	'emoji-storm': [{ key: 'emoji', label: 'Emoji', values: STORM_EMOJI, glyphs: true, accepts: isEmoji }],
-	neon: [{ key: 'shape', label: 'Shape', values: NEON_SHAPES }]
+	neon: [{ key: 'shape', label: 'Shape', values: NEON_SHAPES }],
+	'emoji-neon': [{ key: 'emoji', label: 'Emoji', values: STORM_EMOJI, glyphs: true, accepts: isEmoji }]
 };
 
 /** The options of `variant`, or none. */

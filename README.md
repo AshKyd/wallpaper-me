@@ -73,7 +73,7 @@ Returns a complete `<svg>` document as a string.
 - `generatePaletteArt({ palette, variant, seed, tone, gap, idPrefix, width, height, depth })`: only the inner markup, for a `0 0 width height` viewBox. Use `canvasSizeFor()` to get a size.
 - `canvasSizeFor(containerWidth, containerHeight)`: the canvas size for a container. Height is always `CANVAS_HEIGHT` (800). Width follows the container's ratio, clamped to 0.5 to 3 and rounded to 0.25 steps.
 - `CANVAS_WIDTH`, `CANVAS_HEIGHT`: the default canvas, 1200 by 800.
-- `PALETTE_VARIANTS`, `PaletteVariant`: `circles`, `triangles`, `diamonds`, `bands`, `flowers`, `checkerboard`, `hexagons`, `bokeh`, `mondrian`, `stripes`, `midcentury`, `artdeco`, `80s`, `emoji-storm`, `neon`.
+- `PALETTE_VARIANTS`, `PaletteVariant`: `circles`, `triangles`, `diamonds`, `bands`, `flowers`, `checkerboard`, `hexagons`, `bokeh`, `mondrian`, `stripes`, `midcentury`, `artdeco`, `80s`, `emoji-storm`, `neon`, `emoji-neon`.
 - `VARIANT_OPTIONS`, `optionsFor(variant)`, `VariantOption`: the sub-types each variant lets you fix (see `options` above), as `{ key, label, values }`.
 - `PALETTE_TONES`, `PaletteTone`: `original`, `pastel`, `dark`, `subtleDark`.
 - `applyTone(markup, palette, tone)`, `buildToneMap(palette, tone)`: recolour markup, or get a `(hex) => hex` function using the same processing.

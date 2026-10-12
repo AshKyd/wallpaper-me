@@ -2,7 +2,9 @@ import { round, type GeneratorInput } from './canvas.js';
 import { depthsOf, type DepthItem, type SizeRange } from './depth.js';
 import { DEPTH_LAYERS, depthLayers } from './depthLayers.js';
 import { splitColours } from './eighties.js';
-import { luminance, mixHex } from './paletteUtils.js';
+import { colouriseArtwork } from './emojiColour.js';
+import { OUTLINE_BOX, cachedArtwork } from './emojiOutline.js';
+import { createRandom, mixHex } from './paletteUtils.js';
 import { packCircles } from './packing.js';
 
 /**
@@ -15,12 +17,18 @@ export type StormEmoji = (typeof STORM_EMOJI)[number];
 /** Splits text into its emoji (user-perceived characters), whatever their length in code points. */
 const graphemes = (text: string) => [...new Intl.Segmenter().segment(text)].map(({ segment }) => segment);
 
-/** Emoji that default to plain text get the emoji variation selector, or they'd draw as a flat glyph that the filter can't shade. */
+/** Emoji that default to plain text get the emoji variation selector, so they compare equal to the same emoji typed as a picture. */
 const asEmoji = (glyph: string) => (/\p{Emoji_Presentation}/u.test(glyph) || glyph.includes('️') ? glyph : `${glyph}️`);
 
 /** Whether `value` is exactly one emoji: a pictograph (with any modifiers or joiners), a flag, or a keycap. Anything else could not be put in the SVG safely. */
 export const isEmoji = (value: string) =>
 	graphemes(value).length === 1 && /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}{2}|[0-9#*]️?⃣)/u.test(value) && !/[<>&"]/.test(value);
+
+/** The first emoji in some typed or pasted text, or nothing if there is none. Lets a custom emoji be entered with other characters around it. */
+export const emojiFrom = (text: string): string | undefined => {
+	const found = graphemes(text).find(isEmoji);
+	return found === undefined ? undefined : asEmoji(found);
+};
 
 /**
  * What the seed picks from: the Smileys & Emotion, Food & Drink, Animals & Nature and Objects groups of Unicode's
@@ -52,9 +60,8 @@ export const RANDOM_EMOJI: readonly string[] = [
 export const PACKING = { minRadius: 10, maxRadius: 60, attempts: 80000, gap: 3 } as const;
 const SIZE_RANGE: SizeRange = { smallest: PACKING.minRadius, largest: PACKING.minRadius + PACKING.maxRadius };
 
-/** Font size as a share of the circle's radius. An emoji is about one em across, so this keeps it inside the circle even when it leans. */
+/** An emoji's width as a share of its circle's radius. Under 2 (the diameter), so it stays inside the circle even when it leans. */
 export const EMOJI_SCALE = 1.6;
-const EMOJI_FONT = 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif';
 /** Emoji lean this far either way (degrees) instead of turning all the way round, which would leave most of them upside down. */
 const MAX_TILT = 25;
 
@@ -66,25 +73,9 @@ const GRADIENT_REACH = 0.35;
 /** Blur for a depth layer (0 is the furthest, `DEPTH_LAYERS - 1` the nearest). */
 export const blurForLayer = (layer: number) => round(MAX_BLUR * (1 - layer / (DEPTH_LAYERS - 1)));
 
-/** Colours at least this light (`luminance()`, 0 to 1) are multiplied with the emoji; darker ones are soft-lit. */
-export const LIGHT_COLOUR_LUMINANCE = 0.5;
-
-/**
- * How the greyed emoji is blended with a colour. A light colour is multiplied: the emoji's lightest parts take the
- * colour in full and its darker parts shade it, which keeps the detail. Multiplying a dark colour would leave the
- * emoji nearly black, and `screen` blows the lights out to white, so a darker colour gets `soft-light`: mid grey is
- * the colour itself, darker greys shade it and lighter ones lift it, and nothing clips.
- */
-export const blendModeFor = (colour: string) => (luminance(colour) >= LIGHT_COLOUR_LUMINANCE ? 'multiply' : 'soft-light');
-
-/**
- * Turns an emoji into a flat, one-colour silhouette with its shading kept: greyed, blended with the colour (see
- * `blendModeFor()`), masked by the emoji's own outline
- * so nothing is painted around it, and last blurred by `blur` (none if 0), which softens the edge into the background.
- * The blurred filter's region is larger, so the blur isn't cut off at the emoji's box.
- */
-export const tintFilter = ({ id, colour, blur = 0 }: { id: string; colour: string; blur?: number }) =>
-	`<filter id="${id}" color-interpolation-filters="sRGB"${blur > 0 ? ' x="-50%" y="-50%" width="200%" height="200%"' : ''}><feColorMatrix in="SourceGraphic" type="saturate" values="0" result="grey"/><feFlood flood-color="${colour}" result="tint"/><feBlend in="grey" in2="tint" mode="${blendModeFor(colour)}" result="mixed"/><feComposite in="mixed" in2="SourceGraphic" operator="in"${blur > 0 ? ' result="masked"/><feGaussianBlur in="masked" stdDeviation="' + blur + '"' : ''}/></filter>`;
+/** Blurs whatever uses it by `blur`. The region is larger than the emoji's box, so the blur isn't cut off at its edge. */
+export const blurFilter = ({ id, blur }: { id: string; blur: number }) =>
+	`<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${blur}"/></filter>`;
 
 interface PlacedEmoji {
 	x: number;
@@ -97,24 +88,43 @@ interface PlacedEmoji {
 	layer: number;
 }
 
-/** The ids of the filters, by colour and depth layer, so the shapes and the `<defs>` agree. */
-const filterId = ({ idPrefix, colourIndex, layer }: { idPrefix: string; colourIndex: number; layer: number }) => `${idPrefix}-emoji-${colourIndex}-${layer}`;
+/** The ids of the colourised drawings (one per colour) and of the blur filters (one per depth layer), so the shapes and the `<defs>` agree. */
+const drawingId = ({ idPrefix, colourIndex }: { idPrefix: string; colourIndex: number }) => `${idPrefix}-emoji-${colourIndex}`;
+const blurId = ({ idPrefix, layer }: { idPrefix: string; layer: number }) => `${idPrefix}-emoji-blur-${layer}`;
+
+/**
+ * The emoji drawn for a seed and options: the `emoji` option, or the seed's pick. The pick is the seed's first
+ * draw, so this can say which emoji to load (`loadEmojiOutline()`) before the art is made.
+ */
+export function emojiChoice({ seed = 1, options }: Pick<GeneratorInput, 'seed' | 'options'>): string {
+	const seeded = RANDOM_EMOJI[Math.floor(createRandom(seed)() * RANDOM_EMOJI.length)]!;
+	return options?.emoji && isEmoji(options.emoji) ? asEmoji(options.emoji) : seeded;
+}
+
+/** Variants that draw Twemoji artwork, which must be loaded (`loadEmojiOutline()`) before the art is made. */
+export const usesEmojiArtwork = (variant: string) => variant === 'emoji-storm' || variant === 'emoji-neon';
+
+/** Drawn in place of the emoji when its artwork is missing or not loaded yet, so the picture still has its layout. */
+const PLACEHOLDER = `<circle cx="${OUTLINE_BOX / 2}" cy="${OUTLINE_BOX / 2}" r="${OUTLINE_BOX * 0.4}" fill="#808080"/>`;
 
 /**
  * The 80s pastiche's packing of circles (largest first, so big ones anchor the layout), with an emoji in every
  * one, sized to its circle. Emoji further from the foreground are smaller, and blurrier: a circle's size gives its
  * depth (as for parallax, see `depthsOf()`), which picks one of `DEPTH_LAYERS` blur steps.
  *
- * The background is a gradient from the palette's darkest colour towards the second darkest, top to bottom. Each
- * emoji is tinted one of the colours left over (see `tintFilter()`). The filters are defined once for each colour
- * and blur, in a `<defs>` that stays put with parallax. The emoji is the `emoji` option, or the seed's pick.
+ * The emoji is Twemoji's drawing (see `loadEmojiOutline()`, which must have finished, or grey discs are drawn).
+ * It is recoloured as SVG: each colour left over by the background gets its own copy with every fill shaded in
+ * that colour (see `colouriseArtwork()`), defined once in `<defs>`, and each emoji is a `<use>` of one. The `<defs>`
+ * also hold the gradient and the blur for each depth layer, and stay put with parallax. The background is a
+ * gradient from the palette's darkest colour towards the second darkest, top to bottom. The emoji is the `emoji`
+ * option, or the seed's pick.
  */
-export function emojiStormArt({ colours, random, width, height, idPrefix, options, depth }: GeneratorInput): string {
+export function emojiStormArt({ colours, random, seed, width, height, idPrefix, options, depth }: GeneratorInput): string {
 	const { background, foregrounds } = splitColours(colours);
+	// Drawn first, and always, so asking for an emoji doesn't change the rest of the picture.
+	const emoji = emojiChoice({ seed, options });
+	random();
 	const circles = packCircles({ random, width, height, ...PACKING });
-	// Always drawn, so asking for an emoji doesn't change the rest of the picture.
-	const seeded = RANDOM_EMOJI[Math.floor(random() * RANDOM_EMOJI.length)]!;
-	const emoji = options?.emoji && isEmoji(options.emoji) ? asEmoji(options.emoji) : seeded;
 
 	// Depth by size, nudged a little by position (see `depthsOf()`), then split into the layers parallax uses.
 	const depths = depthsOf(circles.map(({ x, y, radius }) => ({ markup: `${x},${y}`, size: radius })), SIZE_RANGE);
@@ -128,17 +138,19 @@ export function emojiStormArt({ colours, random, width, height, idPrefix, option
 	}));
 
 	const items = placed.map(({ x, y, radius, tilt, colour, layer }): DepthItem => {
-		const id = filterId({ idPrefix, colourIndex: foregrounds.indexOf(colour), layer });
+		const scale = (radius * EMOJI_SCALE) / OUTLINE_BOX;
+		const blur = blurForLayer(layer) > 0 ? ` filter="url(#${blurId({ idPrefix, layer })})"` : '';
 		return {
-			markup: `<text x="${round(x)}" y="${round(y)}" font-size="${round(radius * EMOJI_SCALE)}" font-family="${EMOJI_FONT}" text-anchor="middle" dominant-baseline="central" transform="rotate(${round(tilt)} ${round(x)} ${round(y)})" filter="url(#${id})">${emoji}</text>`,
+			markup: `<use href="#${drawingId({ idPrefix, colourIndex: foregrounds.indexOf(colour) })}" transform="translate(${round(x)} ${round(y)}) rotate(${round(tilt)}) scale(${Math.round(scale * 1000) / 1000}) translate(${-OUTLINE_BOX / 2} ${-OUTLINE_BOX / 2})"${blur}/>`,
 			size: radius
 		};
 	});
 
-	const filters = foregrounds
-		.flatMap((colour, colourIndex) =>
-			Array.from({ length: DEPTH_LAYERS }, (_, layer) => tintFilter({ id: filterId({ idPrefix, colourIndex, layer }), colour, blur: blurForLayer(layer) }))
-		)
+	const artwork = cachedArtwork(emoji) ?? PLACEHOLDER;
+	const drawings = foregrounds.map((colour, colourIndex) => `<g id="${drawingId({ idPrefix, colourIndex })}">${colouriseArtwork(artwork, colour)}</g>`).join('');
+	const blurs = Array.from({ length: DEPTH_LAYERS }, (_, layer) => layer)
+		.filter((layer) => blurForLayer(layer) > 0)
+		.map((layer) => blurFilter({ id: blurId({ idPrefix, layer }), blur: blurForLayer(layer) }))
 		.join('');
 
 	// The gradient only reaches part of the way to the second darkest colour; a one-colour palette's second colour is white.
@@ -147,5 +159,5 @@ export function emojiStormArt({ colours, random, width, height, idPrefix, option
 	const ground = `<linearGradient id="${gradientId}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${height}"><stop offset="0" stop-color="${background}"/><stop offset="1" stop-color="${bottom}"/></linearGradient>`;
 
 	const layers = depthLayers({ items, range: SIZE_RANGE, settings: depth });
-	return `<defs>${ground}${filters}</defs><rect width="${width}" height="${height}" fill="url(#${gradientId})"/>${layers}`;
+	return `<defs>${ground}${blurs}${drawings}</defs><rect width="${width}" height="${height}" fill="url(#${gradientId})"/>${layers}`;
 }

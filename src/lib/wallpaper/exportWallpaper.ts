@@ -1,3 +1,5 @@
+import { emojiChoice, usesEmojiArtwork } from '#lib/components/PaletteBackground/emojiStorm.js';
+import { loadEmojiOutline } from '#lib/components/PaletteBackground/emojiOutline.js';
 import { paletteSvg } from '#lib/components/PaletteBackground/svg.js';
 import type { Palette } from '#lib/components/PaletteBackground/paletteUtils.js';
 import type { WallpaperSettings } from './wallpaperSettings.js';
@@ -49,6 +51,12 @@ export function buildWallpaperSvg({ settings, palette, width, height, viewportWi
 		bleed: parallax,
 		idPrefix: 'export'
 	});
+}
+
+/** Loads whatever a variant draws from on demand (the emoji artwork of `emoji-storm` and `emoji-neon`), so `buildWallpaperSvg()` has it. */
+export async function prepareWallpaper({ variant, seed, options }: Pick<WallpaperSettings, 'variant' | 'seed' | 'options'>): Promise<void> {
+	if (!usesEmojiArtwork(variant)) return;
+	await loadEmojiOutline(emojiChoice({ seed, options }));
 }
 
 /** `Sunset Dunes` + `circles` + 12 -> `wallpaper-circles-sunset-dunes-12.png`. */

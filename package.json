@@ -57,7 +57,10 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
+		"@twemoji/api": "^17.0.3",
+		"@twemoji/svg": "^15.0.0",
 		"msrand": "^2.1.0",
+		"paper": "^0.12.18",
 		"svelte-akui": "github:ashkyd/svelte-akui"
 	}
 }

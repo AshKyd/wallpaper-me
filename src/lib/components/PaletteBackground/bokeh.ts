@@ -36,7 +36,8 @@ export function splitBokehColours(hexes: string[]): { background: string[]; ligh
  * drawn translucent so overlapping discs blend. The gradients are defined once and shared, and live outside the depth layers so parallax
  * (which draws each layer in its own `<svg>`) still finds them.
  */
-export function bokehArt({ colours, random, idPrefix, width, height, depth }: GeneratorInput): string {
+export function bokehArt(input: GeneratorInput): string {
+	const { colours, idPrefix, width, height } = input;
 	const { background, lights } = splitBokehColours(colours.map(({ hex }) => hex));
 
 	/* Background */
@@ -44,6 +45,20 @@ export function bokehArt({ colours, random, idPrefix, width, height, depth }: Ge
 	const [groundFrom, groundTo = mixHex(groundFrom!, '#000000', 0.45)] = background;
 	const backgroundDefs = `<linearGradient id="${backgroundId}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${width}" y2="${height}"><stop offset="0" stop-color="${groundFrom}"/><stop offset="1" stop-color="${groundTo}"/></linearGradient>`;
 
+	const { defs, items } = bokehLights({ ...input, lights });
+	const layers = depthLayers({ items, range: BOKEH_RADIUS_RANGE, settings: input.depth });
+	return `<defs>${backgroundDefs}${defs}</defs><rect width="${width}" height="${height}" fill="url(#${backgroundId})"/>${layers}`;
+}
+
+/**
+ * The blurred discs of `bokehArt` without its background, so another variant can lay them over its own
+ * ground. `defs` goes inside `<defs>`; `items` are the discs for `depthLayers()` over `BOKEH_RADIUS_RANGE`,
+ * so the caller can add its own items to the same depth.
+ */
+export function bokehLights({ lights, random, idPrefix, width, height }: Pick<GeneratorInput, 'random' | 'idPrefix' | 'width' | 'height'> & { lights: string[] }): {
+	defs: string;
+	items: DepthItem[];
+} {
 	/* Gradients shared by the discs */
 	const fillId = (index: number) => `${idPrefix}-bokeh-fill-${index}`;
 	const strokeId = (index: number) => `${idPrefix}-bokeh-stroke-${index}`;
@@ -67,7 +82,7 @@ export function bokehArt({ colours, random, idPrefix, width, height, depth }: Ge
 	/* Discs */
 	const discCount = Math.round((BASE_DISC_COUNT * width * height) / (1200 * 800));
 	const { smallest, largest } = BOKEH_RADIUS_RANGE;
-	const discs = Array.from({ length: discCount }, (): DepthItem => {
+	const items = Array.from({ length: discCount }, (): DepthItem => {
 		// Squared so most discs are small and a few are large.
 		const radius = smallest + (largest - smallest) * random() ** 2.2;
 		const index = Math.floor(random() * lights.length);
@@ -84,6 +99,8 @@ export function bokehArt({ colours, random, idPrefix, width, height, depth }: Ge
 		};
 	});
 
-	const layers = depthLayers({ items: discs, range: BOKEH_RADIUS_RANGE, settings: depth });
-	return `<defs>${backgroundDefs}${lightDefs.join('')}${blurDefs.join('')}</defs><rect width="${width}" height="${height}" fill="url(#${backgroundId})"/>${layers}`;
+	return {
+		defs: `${lightDefs.join('')}${blurDefs.join('')}`,
+		items
+	};
 }

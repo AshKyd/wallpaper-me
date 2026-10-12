@@ -9,7 +9,7 @@
 	import { toneColour } from '#lib/wallpaper/toneSwatches.js';
 	import WallpaperControls from '#lib/components/WallpaperControls/WallpaperControls.svelte';
 	import { palettes } from '#lib/wallpaper/palettes.js';
-	import { buildWallpaperSvg, exportFileName, exportSize, saveBlob, svgToPngBlob } from '#lib/wallpaper/exportWallpaper.js';
+	import { buildWallpaperSvg, exportFileName, exportSize, prepareWallpaper, saveBlob, svgToPngBlob } from '#lib/wallpaper/exportWallpaper.js';
 	import { isVariant, readSettings, toQueryString, type WallpaperSettings } from '#lib/wallpaper/wallpaperSettings.js';
 
 	// The URL is the only source of truth: the variant is the path, every other property a query parameter.
@@ -34,6 +34,7 @@
 		if (!palette) return;
 		const { innerWidth: viewportWidth, innerHeight: viewportHeight } = window;
 		const { width, height } = exportSize({ viewportWidth, viewportHeight });
+		await prepareWallpaper(settings);
 		const svg = buildWallpaperSvg({ settings, palette, width, height, viewportWidth, viewportHeight, parallax: !reducedMotion.value });
 		const blob = await svgToPngBlob({ svg, width, height });
 		saveBlob({ blob, fileName: exportFileName({ settings, palette }) });

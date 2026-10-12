@@ -5,7 +5,7 @@
  * Must match `PALETTE_VARIANTS` in PaletteBackground/generators.ts; wallpaperSettings.test.ts checks that
  * they stay in step. Copied here because this file can't import it.
  */
-export const VARIANT_NAMES = ['circles', 'triangles', 'diamonds', 'bands', 'flowers', 'checkerboard', 'hexagons', 'bokeh', 'mondrian', 'stripes', 'midcentury', 'artdeco', '80s', 'emoji-storm', 'neon'];
+export const VARIANT_NAMES = ['circles', 'triangles', 'diamonds', 'bands', 'flowers', 'checkerboard', 'hexagons', 'bokeh', 'mondrian', 'stripes', 'midcentury', 'artdeco', '80s', 'emoji-storm', 'neon', 'emoji-neon'];
 
 /** SvelteKit 3 matchers are Standard Schemas, keyed by the name used in the route (`[variant=variant]`). */
 const variant = {

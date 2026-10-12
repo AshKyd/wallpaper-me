@@ -11,6 +11,8 @@
 	import { canvasSizeFor, generatePaletteArt, type DepthSettings, type PaletteVariant } from './generators.js';
 	import { aberrationFilter, aberrationOffset } from './aberration.js';
 	import { splitLayers } from './depthLayers.js';
+	import { emojiChoice, usesEmojiArtwork } from './emojiStorm.js';
+	import { loadEmojiOutline } from './emojiOutline.js';
 	import { grainMarkup } from './grain.js';
 	import { PARALLAX_BLEED, parallaxOffset, pointerPosition } from './parallax.js';
 	import type { Palette } from './paletteUtils.js';
@@ -25,7 +27,7 @@
 		seed?: number;
 		/** Borders between shapes, as a share of shape size (0 to 0.4). Only `hexagons` uses it. */
 		gap?: number;
-		/** Slides each depth layer as the cursor moves, so near and far shapes shift apart; larger shapes are nearer. Only `circles`, `flowers` and `bokeh` have layers; other variants slide as one piece. */
+		/** Slides each depth layer as the cursor moves, so near and far shapes shift apart; larger shapes are nearer. Only `circles`, `flowers`, `bokeh` and `emoji-neon` have layers; other variants slide as one piece. */
 		parallax?: boolean;
 		/** Depth that stays still, 0 (smallest, furthest) to 1 (largest, nearest). Nearer shapes slide one way, further ones the other. */
 		parallaxPoint?: number;
@@ -80,10 +82,18 @@
 
 	const depth = $derived<DepthSettings | undefined>(parallax ? { parallaxPoint } : undefined);
 
+	// `emoji-storm` and `emoji-neon` draw Twemoji artwork, which loads on demand. Counting loads makes the art redraw once it arrives.
+	let outlinesLoaded = $state(0);
+	$effect(() => {
+		if (!usesEmojiArtwork(variant)) return;
+		loadEmojiOutline(emojiChoice({ seed, options })).then(() => outlinesLoaded++);
+	});
+
 	// Output is built only from our own generators and validated palette hexes, so {@html} is safe.
-	const artwork = $derived(
-		generatePaletteArt({ palette, variant, seed, idPrefix: `pb-${uniqueId}`, width: paddedWidth, height: paddedHeight, gap, depth, tone, options })
-	);
+	const artwork = $derived.by(() => {
+		void outlinesLoaded;
+		return generatePaletteArt({ palette, variant, seed, idPrefix: `pb-${uniqueId}`, width: paddedWidth, height: paddedHeight, gap, depth, tone, options });
+	});
 
 	// With parallax, what stays put (`base`) and each depth layer are drawn as separate <svg>s. The
 	// browser slides a whole element on the GPU, which is smooth; moving shapes inside one SVG

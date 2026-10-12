@@ -24,16 +24,17 @@ import { artDecoArt } from './artdeco.js';
 import { eightiesArt } from './eighties.js';
 import { emojiStormArt } from './emojiStorm.js';
 import { neonArt } from './neon.js';
+import { emojiNeonArt } from './emojiNeon.js';
 import { applyTone, type PaletteTone } from './tones.js';
 
 export { CANVAS_HEIGHT, CANVAS_WIDTH, canvasSizeFor, type GeneratorInput } from './canvas.js';
 export type { DepthSettings } from './depthLayers.js';
 
-export const PALETTE_VARIANTS = ['circles', 'triangles', 'diamonds', 'bands', 'flowers', 'checkerboard', 'hexagons', 'bokeh', 'mondrian', 'stripes', 'midcentury', 'artdeco', '80s', 'emoji-storm', 'neon'] as const;
+export const PALETTE_VARIANTS = ['circles', 'triangles', 'diamonds', 'bands', 'flowers', 'checkerboard', 'hexagons', 'bokeh', 'mondrian', 'stripes', 'midcentury', 'artdeco', '80s', 'emoji-storm', 'neon', 'emoji-neon'] as const;
 export type PaletteVariant = (typeof PALETTE_VARIANTS)[number];
 
 /** Variants made of sized shapes, which split into depth layers for parallax. The rest move as one piece. */
-const DEPTH_VARIANTS: readonly PaletteVariant[] = ['circles', 'flowers', 'bokeh', '80s', 'emoji-storm'];
+const DEPTH_VARIANTS: readonly PaletteVariant[] = ['circles', 'flowers', 'bokeh', '80s', 'emoji-storm', 'emoji-neon'];
 
 /** Colours other than the base, falling back to the base for one-colour palettes. */
 function accentsOf(colours: PaletteColour[]): PaletteColour[] {
@@ -214,7 +215,8 @@ const GENERATORS: Record<PaletteVariant, (input: GeneratorInput) => string> = {
 	artdeco: artDecoArt,
 	'80s': eightiesArt,
 	'emoji-storm': emojiStormArt,
-	neon: neonArt
+	neon: neonArt,
+	'emoji-neon': emojiNeonArt
 };
 
 /**
@@ -242,7 +244,7 @@ export function generatePaletteArt({
 	height?: number;
 	/** Borders between shapes, as a share of shape size (0 to 0.4). Used by `hexagons`. */
 	gap?: number;
-	/** Parallax: `circles`, `flowers`, `bokeh`, `80s` and `emoji-storm` split into depth layers, other variants slide as one piece. */
+	/** Parallax: `circles`, `flowers`, `bokeh`, `80s`, `emoji-storm` and `emoji-neon` split into depth layers, other variants slide as one piece. */
 	depth?: DepthSettings;
 	/** Recolours the finished art (softer, darker). The layout is the same in every tone. */
 	tone?: PaletteTone;

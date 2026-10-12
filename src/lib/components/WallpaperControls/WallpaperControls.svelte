@@ -6,6 +6,8 @@
 	import PaletteBackground from '#lib/components/PaletteBackground/PaletteBackground.svelte';
 	import { PALETTE_VARIANTS } from '#lib/components/PaletteBackground/generators.js';
 	import type { Palette } from '#lib/components/PaletteBackground/paletteUtils.js';
+	import { emojiFrom } from '#lib/components/PaletteBackground/emojiStorm.js';
+	import TwemojiImage from '#lib/components/TwemojiImage/TwemojiImage.svelte';
 	import { optionsFor } from '#lib/components/PaletteBackground/variantOptions.js';
 	import { toneLabel, toneSwatches } from '#lib/wallpaper/toneSwatches.js';
 	import { SEED_MAX, type WallpaperSettings } from '#lib/wallpaper/wallpaperSettings.js';
@@ -91,7 +93,8 @@
 	</Field>
 
 	<!-- The sub-types this variant would otherwise pick from the seed. Left on "From seed", the seed decides. -->
-	{#each variantOptions as { key, label, values, glyphs } (key)}
+	{#each variantOptions as { key, label, values, glyphs, accepts } (key)}
+		{@const chosen = settings.options[key] ?? ''}
 		<Field {label}>
 			<div class="variant-grid" role="radiogroup" aria-label={label}>
 				<!-- Each tile previews this variant with that sub-type fixed (and the other options as they are now). The first leaves it to the seed. -->
@@ -108,7 +111,7 @@
 								<span class="seed-tile"><Icon name="dice-5" size="1.5rem" /></span>
 							{:else if glyphs}
 								<!-- Glyph options are shown as themselves: a preview of the art would look much the same each time. -->
-								<span class="seed-tile glyph-tile">{value}</span>
+								<span class="seed-tile glyph-tile"><TwemojiImage emoji={value} /></span>
 							{:else}
 								{#key `${currentPalette.title}|${settings.tone}|${settings.seed}`}
 									<span class="variant-layer" in:fade={motion({ duration: WIPE_DURATION, easing: cubicInOut })} out:hold={motion({ duration: WIPE_DURATION })}>
@@ -126,8 +129,29 @@
 						<span class="sr-only">{value ? sentenceCase(value) : 'From seed'}</span>
 					</SelectableItem>
 				{/each}
+				<!-- A custom choice is not in the list, so it gets a tile of its own while it is the one chosen. -->
+				{#if glyphs && chosen && !values.includes(chosen)}
+					<SelectableItem name="{uniqueId}-option-{key}" value={chosen} group={chosen} onchange={() => setOption(key, chosen)}>
+						<span class="variant-preview" aria-hidden="true"><span class="seed-tile glyph-tile"><TwemojiImage emoji={chosen} /></span></span>
+						<span class="sr-only">Custom {label.toLowerCase()}</span>
+					</SelectableItem>
+				{/if}
 			</div>
 		</Field>
+		<!-- Anything typed or pasted is reduced to its first emoji, which is drawn from Twemoji whatever the system's emoji look like. -->
+		{#if accepts}
+			<Field label="Custom {label.toLowerCase()}" for="{uniqueId}-custom-{key}" hint="Type or paste any emoji. It is drawn as Twemoji.">
+				<TextInput
+					id="{uniqueId}-custom-{key}"
+					placeholder="🦖"
+					autocomplete="off"
+					oninput={(event: Event) => {
+						const custom = emojiFrom((event.currentTarget as HTMLInputElement).value);
+						if (custom) setOption(key, custom);
+					}}
+				/>
+			</Field>
+		{/if}
 	{/each}
 
 	<Field label="Palette">
