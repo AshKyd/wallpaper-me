@@ -49,7 +49,30 @@ const svg = paletteSvg({
 await writeFile('wallpaper.svg', svg);
 ```
 
-The same `palette`, `variant`, `options`, `seed`, `tone`, `gap`, `grain`, `aberration` and shape always give the same SVG.
+The same `palette`, `variant`, `config` (or `options` and `seed`), `tone`, `gap`, `grain`, `aberration` and shape always give the same SVG.
+
+### With or without the random choices
+
+Variants are moving to an explicit `config` (exact colours, styles and sizes) that is separate from the random choices. A variant with a config is drawn from it alone; the seed then only affects placement. Each such variant also has an optional `random…Config()` function that makes a config from a palette and a seed. Leave `config` out and `paletteSvg()` calls it for you.
+
+Moved so far: `artdeco`. The other variants still choose everything from `seed`.
+
+```ts
+import { paletteSvg, randomArtDecoConfig, normalisePalette } from 'wallpaper-me';
+
+// Exact: no randomness, any seed gives the same SVG.
+const exact = paletteSvg({
+	palette,
+	variant: 'artdeco',
+	config: { style: 'clamshell', radius: 72, groundTop: '#101820', groundBottom: '#1f3a4d', ink: '#e9c46a' }
+});
+
+// Random, then adjusted: take the seed's config and change one field.
+const config = { ...randomArtDecoConfig({ colours: normalisePalette(palette), seed: 7 }), ink: '#ffffff' };
+const adjusted = paletteSvg({ palette, variant: 'artdeco', config });
+```
+
+`randomArtDecoConfig({ colours, seed, overrides })` also takes `overrides`, which pin fields while the rest are still picked from the seed.
 
 ### `paletteSvg(options)`
 
@@ -57,11 +80,12 @@ Returns a complete `<svg>` document as a string.
 
 - `palette` (required): a `Palette`.
 - `variant` (required): a `PaletteVariant`.
-- `seed`: number, default `1`.
+- `seed`: number, default `1`. Neighbouring seeds give unrelated pictures.
+- `config`: the exact settings for a variant that takes one (see above). `ArtDecoConfig` is `{ style, radius, groundTop, groundBottom, ink }`. When set, `options` is ignored.
 - `tone`: a `PaletteTone`, default `'original'`.
 - `gap`: borders between shapes, `0` to `0.4`, default `0`. Only `hexagons` uses it.
 - `grain`: adds a fine film grain over the art, default `false`. `true` uses the defaults; `{ size, strength }` tunes it. `size` is a speck's width in output pixels (default `1.25`) and `strength` is `0` to `1` (default `0.05`; `0` is off). It only lightens, and is sized in output pixels, so it looks the same at any `width`.
-- `options`: fixes a variant's sub-types instead of leaving them to the seed, by key, for example `{ style: 'sunburst' }`. `artdeco` has `style`; `midcentury` has `shape` and `facing`; `neon` has `shape` (`circle`, `triangle`, `square`, `pentagon` or `hexagon`). `VARIANT_OPTIONS` lists the values. An unknown key or value is ignored.
+- `options`: fixes a variant's sub-types instead of leaving them to the seed, by key, for example `{ style: 'sunburst' }`. `artdeco` has `style`; `midcentury` has `shape` and `facing`; `neon` has `shape` (`circle`, `triangle`, `square`, `pentagon` or `hexagon`); `emoji-storm` and `emoji-neon` have `emoji` (any single emoji, drawn with Twemoji). The two emoji variants load their Twemoji artwork with Vite (`import.meta.glob`), so they only draw the emoji inside this app. The plain `tsc` library build draws grey discs for them. `VARIANT_OPTIONS` lists the values. An unknown key or value is ignored.
 - `aberration`: chromatic aberration, default `false`. `true` uses the defaults; `{ offset }` tunes it. Red and blue each move `offset` output pixels (default `2`; `0` is off) sideways, in opposite directions, so edges show colour fringes. The grain is not affected.
 - `width`, `height`: size of the SVG in pixels, default `1920` and `1080`.
 - `shape`: `{ width, height }`. The shape the art is laid out for, if different from `width` and `height`. The image crops to its own shape.
@@ -70,7 +94,9 @@ Returns a complete `<svg>` document as a string.
 
 ### Other exports
 
-- `generatePaletteArt({ palette, variant, seed, tone, gap, idPrefix, width, height, depth })`: only the inner markup, for a `0 0 width height` viewBox. Use `canvasSizeFor()` to get a size.
+- `generatePaletteArt({ palette, variant, config, seed, options, tone, gap, idPrefix, width, height, depth })`: only the inner markup, for a `0 0 width height` viewBox. Use `canvasSizeFor()` to get a size.
+- `randomArtDecoConfig({ colours, seed, overrides })`, `ArtDecoConfig`: the optional random step for `artdeco`. `colours` is from `normalisePalette()`.
+- `VariantConfigs`, `ConfigFor<Variant>`: the config type of each variant that takes one.
 - `canvasSizeFor(containerWidth, containerHeight)`: the canvas size for a container. Height is always `CANVAS_HEIGHT` (800). Width follows the container's ratio, clamped to 0.5 to 3 and rounded to 0.25 steps.
 - `CANVAS_WIDTH`, `CANVAS_HEIGHT`: the default canvas, 1200 by 800.
 - `PALETTE_VARIANTS`, `PaletteVariant`: `circles`, `triangles`, `diamonds`, `bands`, `flowers`, `checkerboard`, `hexagons`, `bokeh`, `mondrian`, `stripes`, `midcentury`, `artdeco`, `80s`, `emoji-storm`, `neon`, `emoji-neon`.
@@ -80,8 +106,8 @@ Returns a complete `<svg>` document as a string.
 - `PARALLAX_BLEED`: 80 canvas units.
 - `splitLayers(art)`, `ArtLayer`: split art made with `depth` into a backdrop and parallax layers.
 - `normalisePalette(palette)`: merges repeated hexes and sorts by `prominence`.
-- `createRandom(seed)`, `hashSeed(text)`: the seeded random function and a string-to-seed hash.
-- Types: `Palette`, `PaletteColour`, `PaletteSvgOptions`, `GeneratorInput`, `DepthSettings`.
+- `createRandom(seed)`, `hashSeed(text)`: the seeded random function (it scrambles the seed first, so neighbouring seeds are unrelated) and a string-to-seed hash.
+- Types: `Palette`, `PaletteColour`, `PaletteSvgOptions`, `GeneratorInput`, `DepthSettings`, `GrainOptions`, `GrainSetting`, `AberrationOptions`, `AberrationSetting`.
 
 ### `Palette`
 

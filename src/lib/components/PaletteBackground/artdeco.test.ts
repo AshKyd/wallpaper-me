@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import paletteData from '../../../../palettes.json';
 import { generatePaletteArt } from './generators.js';
-import { FAN_RADII, FAN_STYLES, fanColours } from './artdeco.js';
+import { FAN_RADII, FAN_STYLES, fanColours, randomArtDecoConfig } from './artdeco.js';
 import { luminance, normalisePalette, type Palette } from './paletteUtils.js';
 
 const palettes = paletteData as Palette[];
@@ -28,6 +28,28 @@ describe('fanColours', () => {
 		const two = fanColours(coloursOf(['#336699', '#ddeeff']));
 		expect(two.ink).toBe('#ddeeff');
 		expect(luminance(two.groundTop)).toBeLessThan(luminance(two.groundBottom));
+	});
+});
+
+describe('artdeco config', () => {
+	const colours = normalisePalette(palettes[0]!);
+
+	it('is made from the seed: repeatable, varied by seed, and pinned by overrides', () => {
+		expect(randomArtDecoConfig({ colours, seed: 4 })).toEqual(randomArtDecoConfig({ colours, seed: 4 }));
+		const configs = seeds.map((seed) => randomArtDecoConfig({ colours, seed }));
+		expect(new Set(configs.map(({ style }) => style))).toEqual(new Set(FAN_STYLES));
+		expect(new Set(configs.map(({ radius }) => radius))).toEqual(new Set(FAN_RADII));
+		const pinned = randomArtDecoConfig({ colours, seed: 4, overrides: { style: 'clamshell', ink: '#123456' } });
+		expect(pinned).toMatchObject({ style: 'clamshell', ink: '#123456', radius: randomArtDecoConfig({ colours, seed: 4 }).radius });
+	});
+
+	it('draws exactly the config it is given, whatever the seed', () => {
+		const config = { style: 'clamshell', radius: 72, groundTop: '#010203', groundBottom: '#040506', ink: '#a1b2c3' } as const;
+		const make = (seed: number) => generatePaletteArt({ palette: palettes[0]!, variant: 'artdeco', seed, config });
+		expect(make(1)).toBe(make(99));
+		expect(make(1)).toContain('#a1b2c3');
+		expect(make(1)).toContain('#010203');
+		expect(make(1)).toBe(generatePaletteArt({ palette: palettes[1]!, variant: 'artdeco', config }));
 	});
 });
 

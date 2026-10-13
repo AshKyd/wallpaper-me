@@ -1,4 +1,4 @@
-import type { OnNavigate } from '@sveltejs/kit';
+import type { OnNavigate } from '$app/navigation';
 import { reducedMotion } from 'svelte-akui';
 
 /**
@@ -8,11 +8,11 @@ import { reducedMotion } from 'svelte-akui';
  * Changes within the editor are left alone: every slider tick is a navigation, and a transition on each
  * would be unusable. So is Reduced Motion.
  */
-export const onPageNavigate: OnNavigate = (navigation) => {
+export const onPageNavigate = (navigation: OnNavigate) => {
 	if (!document.startViewTransition || reducedMotion.value) return;
 	if (navigation.from?.route.id === navigation.to?.route.id) return;
 
-	return new Promise((resolve) => {
+	return new Promise<void>((resolve) => {
 		document.startViewTransition(async () => {
 			resolve();
 			await navigation.complete;

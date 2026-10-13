@@ -1,4 +1,4 @@
-import { canvasSizeFor, generatePaletteArt, type PaletteVariant } from './generators.js';
+import { canvasSizeFor, generatePaletteArt, type ConfigFor, type PaletteVariant } from './generators.js';
 import { aberrationFilter, aberrationOffset, aberrationPixelsOf, type AberrationSetting } from './aberration.js';
 import { grainMarkup, grainOptionsOf, type GrainSetting } from './grain.js';
 import { PARALLAX_BLEED } from './parallax.js';
@@ -12,6 +12,8 @@ export interface PaletteSvgOptions {
 	variant: PaletteVariant;
 	/** Same seed, same artwork. */
 	seed?: number;
+	/** The exact settings to draw with, for a variant that takes one (see `VariantConfigs`). Without it the variant makes its own from `seed`. */
+	config?: ConfigFor<PaletteVariant>;
 	/** Recolours the artwork; the layout is the same in every tone. */
 	tone?: PaletteTone;
 	/** Borders between shapes, 0 to 0.4 of shape size. Only `hexagons` uses it. */
@@ -50,6 +52,7 @@ export function paletteSvg({
 	palette,
 	variant,
 	seed = 1,
+	config,
 	tone = 'original',
 	gap = 0,
 	width = 1920,
@@ -66,6 +69,7 @@ export function paletteSvg({
 	const art = generatePaletteArt({
 		palette,
 		variant,
+		config,
 		seed,
 		tone,
 		gap,

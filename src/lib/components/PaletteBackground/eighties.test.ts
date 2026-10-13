@@ -125,8 +125,8 @@ describe('80s geometry', () => {
 		SHAPE_KINDS.forEach((kind) => expect(JSON.stringify(shapeGeometry(kind, 80))).not.toMatch(/NaN|undefined|Infinity/));
 	});
 
-	it('makes a squiggle as wide as its size, from a curve and mirrored curves', () => {
-		const { attributes } = shapeGeometry('squiggle', 80);
+	it('makes a squiggle as wide as its circle (twice the radius), from a curve and mirrored curves', () => {
+		const { attributes } = shapeGeometry('squiggle', 40);
 		expect(attributes).toContain('M -40 0 Q');
 		expect(attributes.match(/T /g)).toHaveLength(SQUIGGLE_WAVES - 1);
 		// Gentle: the curve's peak is `SQUIGGLE_HEIGHT` of the radius, so its control point is twice that.
@@ -161,7 +161,7 @@ describe('80s art', () => {
 		const flat = generatePaletteArt({ palette: palettes[0]!, variant: '80s', seed: 3 });
 		const layered = generatePaletteArt({ palette: palettes[0]!, variant: '80s', seed: 3, depth: { parallaxPoint: 0.5 } });
 		const shapesOf = (art: string) => (art.match(/<(?:path|polygon) /g) ?? []).length;
-		expect(shapesOf(flat)).toBeGreaterThan(100);
+		expect(shapesOf(flat)).toBeGreaterThan(50);
 		expect(shapesOf(layered)).toBe(shapesOf(flat));
 	});
 

@@ -1,5 +1,5 @@
-import { round, type GeneratorInput } from './canvas.js';
-import { luminance, mixHex, pickOption, type PaletteColour } from './paletteUtils.js';
+import { definedOnly, round, type ArtInput } from './canvas.js';
+import { createRandom, luminance, mixHex, pickOption, type PaletteColour } from './paletteUtils.js';
 
 export const FAN_STYLES = ['peacock', 'sunburst', 'clamshell'] as const;
 export type FanStyle = (typeof FAN_STYLES)[number];
@@ -216,19 +216,41 @@ export function clamshellMarkup({ x, y, radius, ink, groundAt }: FanOptions): st
 	return [backing, ...feathers].join('');
 }
 
+/** Everything `artDecoArt()` needs to draw. Nothing in it is random, so the same config always gives the same fans. */
+export interface ArtDecoConfig extends FanColours {
+	style: FanStyle;
+	/** Radius of one fan, in canvas units (see `FAN_RADII`). */
+	radius: number;
+}
+
+/**
+ * A config picked from the seed: the style and size are its two draws, and the colours come from the palette
+ * (see `fanColours()`). `overrides` pins any of the fields, and the seeded pick for it is still drawn, so pinning
+ * one field leaves the other as it was.
+ */
+export function randomArtDecoConfig({ colours, seed, overrides = {} }: { colours: PaletteColour[]; seed: number; overrides?: Partial<ArtDecoConfig> }): ArtDecoConfig {
+	const random = createRandom(seed);
+	const style = pickOption(FAN_STYLES, undefined, random);
+	const radius = FAN_RADII[Math.floor(random() * FAN_RADII.length)]!;
+	return { style, radius, ...fanColours(colours), ...definedOnly(overrides) };
+}
+
+/** The config fields the string `options` of the app can pin (see `VARIANT_OPTIONS`). */
+export const artDecoOverrides = (options?: Record<string, string>): Partial<ArtDecoConfig> => {
+	const style = FAN_STYLES.find((candidate) => candidate === options?.style);
+	return style ? { style } : {};
+};
+
 /**
  * Art deco fans: rows of fans, each row shifted by half a pitch from the one above, so every fan sits in the
  * gap between two fans of the row before. Rows are drawn top to bottom, so each covers part of the one above.
  * `clamshell` fans are circles; `peacock` and `sunburst` are tall arches (see `archPath()`).
  *
- * Monochrome on purpose (see `fanColours()`): fills that step from the darkest colour at the top to the second
- * darkest at the bottom, row by row, and the third darkest colour for every line. The style (`FAN_STYLES`) and size
- * come from the seed. The grid runs past the canvas.
+ * Monochrome on purpose (see `fanColours()`): fills that step from `groundTop` at the top to `groundBottom` at
+ * the bottom, row by row, and `ink` for every line. Fully set by the config, with no randomness. The grid runs
+ * past the canvas.
  */
-export function artDecoArt({ colours, random, idPrefix, width, height, options }: GeneratorInput): string {
-	const style = pickOption(FAN_STYLES, options?.style, random);
-	const radius = FAN_RADII[Math.floor(random() * FAN_RADII.length)]!;
-	const { groundTop, groundBottom, ink } = fanColours(colours);
+export function artDecoArt({ style, radius, groundTop, groundBottom, ink }: ArtDecoConfig, { idPrefix, width, height }: Pick<ArtInput, 'idPrefix' | 'width' | 'height'>): string {
 
 	// Every fan is one solid colour, a little further from the top colour than the row above, which reads as a
 	// gradient. The fans are spaced apart, so the real gradient behind them (same colours, same direction) shows in

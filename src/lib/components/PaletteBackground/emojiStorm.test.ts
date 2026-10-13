@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import paletteData from '../../../../palettes.json';
 import { DEPTH_LAYERS, splitLayers } from './depthLayers.js';
 import { colouriseArtwork, fullHex } from './emojiColour.js';
-import { cachedOutline, loadEmojiOutline } from './emojiOutline.js';
+import { cachedArtwork, loadEmojiOutline } from './emojiOutline.js';
 import { MAX_BLUR, RANDOM_EMOJI, STORM_EMOJI, blurForLayer, emojiChoice, isEmoji, usesEmojiArtwork } from './emojiStorm.js';
 import { generatePaletteArt } from './generators.js';
 import { type Palette } from './paletteUtils.js';
@@ -35,10 +35,11 @@ describe('Emoji Storm art', () => {
 	it('uses one emoji for the whole picture: the one asked for, or the seed’s pick', () => {
 		STORM_EMOJI.forEach((emoji) => {
 			const markup = art({ emoji });
-			// Whatever the colour, a drawing is the emoji's own shapes: without its fills, it is the emoji's outline.
-			const drawings = [...markup.matchAll(/<g id="[^"]+-emoji-\d+">(.*?)<\/g><(?:g id|\/defs)/gs)].map(([, drawing]) => drawing!.replaceAll(/\sfill="[^"]*"/g, ''));
+			const withoutFills = (svg: string) => svg.replaceAll(/\sfill="[^"]*"/g, '');
+			// Whatever the colour, a drawing is the emoji's own shapes: without their fills, they are Twemoji's artwork.
+			const drawings = [...markup.matchAll(/<g id="[^"]+-emoji-\d+">(.*?)<\/g><(?:g id|\/defs)/gs)].map(([, drawing]) => withoutFills(drawing!));
 			expect(drawings.length).toBeGreaterThan(0);
-			drawings.forEach((drawing) => expect(drawing).toBe(cachedOutline(emoji)));
+			drawings.forEach((drawing) => expect(drawing).toBe(withoutFills(cachedArtwork(emoji)!)));
 		});
 		expect(art({ emoji: '🌵' })).not.toBe(art({ emoji: '🦖' }));
 		expect(art({ emoji: 'not an emoji' })).toBe(art());
@@ -140,7 +141,8 @@ describe('Emoji colour', () => {
 	});
 
 	it('gives each distinct fill its own colour (darkest fill gets the darkest colour), and shifts the deal along the palette', () => {
-		const svg = '<path fill="#202020"/><path fill="#a0a0a0"/><path fill="#202020"/>';
+		// Mid-lightness, strongly coloured fills, so none counts as white or black.
+		const svg = '<path fill="#802020"/><path fill="#e0a0a0"/><path fill="#802020"/>';
 		const palette = ['#eeeeee', '#111111'];
 		expect(colouriseArtwork({ artwork: svg, palette })).toBe('<path fill="#111111"/><path fill="#eeeeee"/><path fill="#111111"/>');
 		expect(colouriseArtwork({ artwork: svg, palette, shift: 1 })).toBe('<path fill="#eeeeee"/><path fill="#111111"/><path fill="#eeeeee"/>');

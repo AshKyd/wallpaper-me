@@ -23,9 +23,20 @@ type Rgb = [number, number, number];
  */
 const WARM_UP_STEPS = 4;
 
+/**
+ * Scrambles a seed (the 32-bit finaliser of MurmurHash3), so neighbouring seeds start the generator far apart.
+ * Warming up alone is not enough: an LCG's later outputs still move in lockstep with the seed, so some draws
+ * (a neon picture's line thickness, say) came out the same for every small seed.
+ */
+const scrambleSeed = (seed: number): number => {
+	const mixed = Math.imul((seed >>> 0) ^ ((seed >>> 0) >>> 16), 0x85ebca6b);
+	const mixedAgain = Math.imul(mixed ^ (mixed >>> 13), 0xc2b2ae35);
+	return (mixedAgain ^ (mixedAgain >>> 16)) >>> 0;
+};
+
 /** Returns a function giving repeatable numbers in [0, 1) for a seed, from `msrand` (the Microsoft C `rand`). */
 export function createRandom(seed: number): () => number {
-	const generator = new MSRand(seed >>> 0);
+	const generator = new MSRand(scrambleSeed(seed));
 	Array.from({ length: WARM_UP_STEPS }, () => generator.rand());
 	// `randDecimal()` can return exactly 1, which would put `floor(random() * n)` one past the end of a list. Dividing by one more keeps it below 1.
 	return () => generator.rand() / (MAX_INTEGER + 1);

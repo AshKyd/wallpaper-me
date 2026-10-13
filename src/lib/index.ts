@@ -13,6 +13,8 @@ export {
 	type DepthSettings
 } from './components/PaletteBackground/generators.js';
 export { VARIANT_OPTIONS, optionsFor, type VariantOption } from './components/PaletteBackground/variantOptions.js';
+export { randomArtDecoConfig, type ArtDecoConfig } from './components/PaletteBackground/artdeco.js';
+export type { ConfigFor, VariantConfigs } from './components/PaletteBackground/generators.js';
 export type { GrainOptions, GrainSetting } from './components/PaletteBackground/grain.js';
 export type { AberrationOptions, AberrationSetting } from './components/PaletteBackground/aberration.js';
 export { PALETTE_TONES, applyTone, buildToneMap, type PaletteTone } from './components/PaletteBackground/tones.js';

@@ -8,7 +8,7 @@ import {
 	type Palette,
 	type PaletteColour
 } from './paletteUtils.js';
-import { CANVAS_HEIGHT, CANVAS_WIDTH, round, type GeneratorInput } from './canvas.js';
+import { CANVAS_HEIGHT, CANVAS_WIDTH, round, type ArtInput, type GeneratorInput, type VariantDefinition } from './canvas.js';
 import { PACKED_RADIUS_RANGE, packCircles } from './packing.js';
 import { depthLayers, wholeCanvasLayer, type DepthSettings } from './depthLayers.js';
 import type { DepthItem } from './depth.js';
@@ -20,7 +20,7 @@ import { bokehArt } from './bokeh.js';
 import { mondrianArt } from './mondrian.js';
 import { stripesArt } from './stripes.js';
 import { midcenturyArt } from './midcentury.js';
-import { artDecoArt } from './artdeco.js';
+import { artDecoArt, artDecoOverrides, randomArtDecoConfig, type ArtDecoConfig } from './artdeco.js';
 import { eightiesArt } from './eighties.js';
 import { emojiStormArt } from './emojiStorm.js';
 import { neonArt } from './neon.js';
@@ -200,7 +200,23 @@ function diamondsArt({ colours, random, width, height }: GeneratorInput): string
 
 /* ------------------------------------------------------------------ */
 
-const GENERATORS: Record<PaletteVariant, (input: GeneratorInput) => string> = {
+/**
+ * The config each variant takes, for the variants that have moved to the config style. Pass one as `config` to
+ * draw exactly that; leave it out and the variant's `randomConfig()` makes one from the seed.
+ */
+export interface VariantConfigs {
+	artdeco: ArtDecoConfig;
+}
+export type MigratedVariant = keyof VariantConfigs;
+export type ConfigFor<V extends PaletteVariant> = V extends MigratedVariant ? VariantConfigs[V] : never;
+
+const DEFINITIONS: { [V in MigratedVariant]: VariantDefinition<VariantConfigs[V]> } = {
+	artdeco: { randomConfig: randomArtDecoConfig, overridesFromOptions: artDecoOverrides, art: artDecoArt }
+};
+
+const isMigrated = (variant: PaletteVariant): variant is MigratedVariant => variant in DEFINITIONS;
+
+const GENERATORS: Record<Exclude<PaletteVariant, MigratedVariant>, (input: GeneratorInput) => string> = {
 	circles: circlesArt,
 	triangles: trianglesArt,
 	diamonds: diamondsArt,
@@ -212,20 +228,30 @@ const GENERATORS: Record<PaletteVariant, (input: GeneratorInput) => string> = {
 	mondrian: mondrianArt,
 	stripes: stripesArt,
 	midcentury: midcenturyArt,
-	artdeco: artDecoArt,
 	'80s': eightiesArt,
 	'emoji-storm': emojiStormArt,
 	neon: neonArt,
 	'emoji-neon': emojiNeonArt
 };
 
+/** Draws a variant that takes a config: the given one, or one made from the seed (with the app's `options` pinned). */
+function drawMigrated<V extends MigratedVariant>(
+	variant: V,
+	{ colours, config, seed, options, input }: { colours: PaletteColour[]; config?: unknown; seed: number; options?: Record<string, string>; input: ArtInput }
+): string {
+	const definition = DEFINITIONS[variant] as VariantDefinition<VariantConfigs[V]>;
+	const chosen = (config as VariantConfigs[V] | undefined) ?? definition.randomConfig({ colours, seed, overrides: definition.overridesFromOptions(options) });
+	return definition.art(chosen, input);
+}
+
 /**
  * Builds the inner SVG markup (for a `0 0 width height` viewBox) for a palette.
  * The same palette, variant, seed and size always produce the same artwork.
  */
-export function generatePaletteArt({
+export function generatePaletteArt<V extends PaletteVariant>({
 	palette,
 	variant,
+	config,
 	seed = 1,
 	idPrefix = 'palette',
 	width = CANVAS_WIDTH,
@@ -236,7 +262,12 @@ export function generatePaletteArt({
 	options
 }: {
 	palette: Palette;
-	variant: PaletteVariant;
+	variant: V;
+	/**
+	 * The exact settings to draw with (colours, counts, styles), for a variant that takes one (see `VariantConfigs`).
+	 * Without it the variant makes its own from `seed`, `palette` and `options`. Only placement then uses the seed.
+	 */
+	config?: ConfigFor<V>;
 	seed?: number;
 	idPrefix?: string;
 	/** Canvas size; use `canvasSizeFor()` to match a container's aspect ratio. */
@@ -251,7 +282,10 @@ export function generatePaletteArt({
 	/** Fixes sub-types (`artdeco`, `midcentury`, `emoji-storm` and `neon` have them; see `VARIANT_OPTIONS`) instead of leaving them to the seed. */
 	options?: Record<string, string>;
 }): string {
-	const original = GENERATORS[variant]({ colours: normalisePalette(palette), random: createRandom(seed), seed, idPrefix, width, height, gap, depth, options });
+	const colours = normalisePalette(palette);
+	const original = isMigrated(variant)
+		? drawMigrated(variant, { colours, config, seed, options, input: { random: createRandom(seed), idPrefix, width, height, gap, depth } })
+		: GENERATORS[variant as Exclude<PaletteVariant, MigratedVariant>]({ colours, random: createRandom(seed), seed, idPrefix, width, height, gap, depth, options });
 	const art = applyTone(original, palette, tone);
 	// Variants without their own depth layers slide as one piece when parallax is on.
 	return depth?.parallaxPoint === undefined || DEPTH_VARIANTS.includes(variant) ? art : wholeCanvasLayer(art);

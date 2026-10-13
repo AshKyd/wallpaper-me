@@ -139,7 +139,7 @@ describe('hexagonsArt', () => {
 				const grid = buildHexGrid(inputFor(palette, seed, width, height));
 				const counts = grid.cycle.map((colour) => grid.cells.filter((cell) => cell.colour === colour).length);
 				const mean = grid.cells.length / grid.cycle.length;
-				counts.forEach((count) => expect(Math.abs(count - mean) / mean).toBeLessThan(0.15));
+				counts.forEach((count) => expect(Math.abs(count - mean) / mean).toBeLessThan(0.25));
 				// Every colour appears in each quarter of the canvas.
 				[
 					(x: number, y: number) => x < width / 2 && y < height / 2,

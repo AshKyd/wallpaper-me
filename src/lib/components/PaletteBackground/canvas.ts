@@ -33,6 +33,27 @@ export interface GeneratorInput {
 	depth?: DepthSettings;
 }
 
+/**
+ * What a variant is drawn with besides its own config: the seeded `random` (used for placement only), the canvas,
+ * and the shared extras. A variant that takes a config is called as `art(config, input)`.
+ */
+export type ArtInput = Pick<GeneratorInput, 'random' | 'idPrefix' | 'width' | 'height' | 'gap' | 'depth'>;
+
+/**
+ * A variant that takes a config, in its three parts. `randomConfig` is the optional "pre" step: it makes a whole
+ * config from a palette and a seed, and `overrides` pins fields of it. `overridesFromOptions` turns the app's
+ * string `options` into such overrides. `art` only draws.
+ */
+export interface VariantDefinition<Config> {
+	randomConfig: (input: { colours: PaletteColour[]; seed: number; overrides?: Partial<Config> }) => Config;
+	overridesFromOptions: (options?: Record<string, string>) => Partial<Config>;
+	art: (config: Config, input: ArtInput) => string;
+}
+
+/** The entries of `values` that are set, so spreading overrides never replaces a field with `undefined`. */
+export const definedOnly = <T extends object>(values: T): Partial<T> =>
+	Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined)) as Partial<T>;
+
 /** One decimal place keeps the SVG markup small without visible loss. */
 export const round = (value: number) => Math.round(value * 10) / 10;
 

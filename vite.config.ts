@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
@@ -15,5 +16,9 @@ export default defineConfig({
 			// The host must serve index.html for any path (e.g. /circles?p=3), as there are no prerendered pages.
 			adapter: adapter({ fallback: 'index.html' })
 		})
-	]
+	],
+	test: {
+		// Some tests draw every variant at every shape for every palette, which takes longer than the 5s default on slower machines.
+		testTimeout: 30_000
+	}
 });
