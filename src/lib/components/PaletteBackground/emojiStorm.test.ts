@@ -1,11 +1,11 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import paletteData from '../../../../palettes.json';
 import { DEPTH_LAYERS, splitLayers } from './depthLayers.js';
-import { LIGHT_COLOUR_LUMINANCE, blendModeFor, colouriseArtwork, fullHex, shadeOf } from './emojiColour.js';
+import { colouriseArtwork, fullHex } from './emojiColour.js';
 import { cachedOutline, loadEmojiOutline } from './emojiOutline.js';
 import { MAX_BLUR, RANDOM_EMOJI, STORM_EMOJI, blurForLayer, emojiChoice, isEmoji, usesEmojiArtwork } from './emojiStorm.js';
 import { generatePaletteArt } from './generators.js';
-import { luminance, type Palette } from './paletteUtils.js';
+import { type Palette } from './paletteUtils.js';
 
 const palettes = paletteData as Palette[];
 const art = (options?: Record<string, string>, seed = 3) => generatePaletteArt({ palette: palettes[0]!, variant: 'emoji-storm', seed, options });
@@ -118,25 +118,6 @@ describe('Emoji Storm art', () => {
 });
 
 describe('Emoji colour', () => {
-	it('blends light colours by multiplying and darker ones by soft light', () => {
-		['#ffffff', '#f0c040', '#80c0ff'].forEach((colour) => expect(blendModeFor(colour)).toBe('multiply'));
-		['#000000', '#336699', '#5a2d0c'].forEach((colour) => expect(blendModeFor(colour)).toBe('soft-light'));
-		expect(LIGHT_COLOUR_LUMINANCE).toBe(0.5);
-	});
-
-	it('shades a light colour by multiplying: white is the colour itself, black stays black', () => {
-		expect(shadeOf('#ffffff', '#f0c040')).toBe('#f0c040');
-		expect(shadeOf('#000000', '#f0c040')).toBe('#000000');
-	});
-
-	it('shades a dark colour by soft light: mid grey is the colour, darker greys shade it and lighter ones lift it', () => {
-		const colour = '#336699';
-		expect(luminance(shadeOf('#000000', colour))).toBeLessThan(luminance(colour));
-		expect(luminance(shadeOf('#ffffff', colour))).toBeGreaterThan(luminance(colour));
-		// A grey with a brightness of exactly half (#808080 is a hair over) leaves the colour almost as it was.
-		expect(luminance(shadeOf('#808080', colour))).toBeCloseTo(luminance(colour), 1);
-	});
-
 	it('reads three-digit hexes and the colour names Twemoji uses, and leaves anything else', () => {
 		expect(fullHex('#269')).toBe('#226699');
 		expect(fullHex('#FFF')).toBe('#ffffff');
@@ -146,10 +127,27 @@ describe('Emoji colour', () => {
 		expect(fullHex('url(#a)')).toBeUndefined();
 	});
 
-	it('replaces every fill with a shade, keeping everything else', () => {
-		const svg = '<path fill="#FFF" d="M1 1"/><g fill="red" opacity=".5"><circle fill="none" r="1"/></g>';
-		const coloured = colouriseArtwork(svg, '#f0c040');
-		expect(coloured).toBe(`<path fill="#f0c040" d="M1 1"/><g fill="${shadeOf('#ff0000', '#f0c040')}" opacity=".5"><circle fill="none" r="1"/></g>`);
+	it('keeps white and black, and swaps every other fill for a palette colour', () => {
+		const svg = '<path fill="#FFF" d="M1 1"/><path fill="#000" d="M2 2"/><g fill="red" opacity=".5"><circle fill="none" r="1"/></g>';
+		expect(colouriseArtwork({ artwork: svg, palette: ['#f0c040'] })).toBe(
+			'<path fill="#FFF" d="M1 1"/><path fill="#000" d="M2 2"/><g fill="#f0c040" opacity=".5"><circle fill="none" r="1"/></g>'
+		);
+	});
+
+	it('also keeps near-white and near-black greys, as in the poop emoji\'s eyes, but not mid greys or colours', () => {
+		const svg = '<path fill="#F5F8FA"/><path fill="#292F33"/><path fill="#99AAB5"/><path fill="#F2ABBA"/>';
+		expect(colouriseArtwork({ artwork: svg, palette: ['#336699'] })).toBe('<path fill="#F5F8FA"/><path fill="#292F33"/><path fill="#336699"/><path fill="#336699"/>');
+	});
+
+	it('gives each distinct fill its own colour (darkest fill gets the darkest colour), and shifts the deal along the palette', () => {
+		const svg = '<path fill="#202020"/><path fill="#a0a0a0"/><path fill="#202020"/>';
+		const palette = ['#eeeeee', '#111111'];
+		expect(colouriseArtwork({ artwork: svg, palette })).toBe('<path fill="#111111"/><path fill="#eeeeee"/><path fill="#111111"/>');
+		expect(colouriseArtwork({ artwork: svg, palette, shift: 1 })).toBe('<path fill="#eeeeee"/><path fill="#111111"/><path fill="#eeeeee"/>');
+	});
+
+	it('leaves the artwork alone for an empty palette', () => {
+		expect(colouriseArtwork({ artwork: '<path fill="red"/>', palette: [] })).toBe('<path fill="red"/>');
 	});
 });
 

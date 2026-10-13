@@ -113,8 +113,9 @@ const PLACEHOLDER = `<circle cx="${OUTLINE_BOX / 2}" cy="${OUTLINE_BOX / 2}" r="
  * depth (as for parallax, see `depthsOf()`), which picks one of `DEPTH_LAYERS` blur steps.
  *
  * The emoji is Twemoji's drawing (see `loadEmojiOutline()`, which must have finished, or grey discs are drawn).
- * It is recoloured as SVG: each colour left over by the background gets its own copy with every fill shaded in
- * that colour (see `colouriseArtwork()`), defined once in `<defs>`, and each emoji is a `<use>` of one. The `<defs>`
+ * It is recoloured as SVG: every fill but white and black becomes a palette colour (see `colouriseArtwork()`).
+ * There is one copy per colour left over by the background, each dealing the palette out differently, defined once
+ * in `<defs>`, and each emoji is a `<use>` of one. The `<defs>`
  * also hold the gradient and the blur for each depth layer, and stay put with parallax. The background is a
  * gradient from the palette's darkest colour towards the second darkest, top to bottom. The emoji is the `emoji`
  * option, or the seed's pick.
@@ -147,7 +148,7 @@ export function emojiStormArt({ colours, random, seed, width, height, idPrefix, 
 	});
 
 	const artwork = cachedArtwork(emoji) ?? PLACEHOLDER;
-	const drawings = foregrounds.map((colour, colourIndex) => `<g id="${drawingId({ idPrefix, colourIndex })}">${colouriseArtwork(artwork, colour)}</g>`).join('');
+	const drawings = foregrounds.map((_, colourIndex) => `<g id="${drawingId({ idPrefix, colourIndex })}">${colouriseArtwork({ artwork, palette: foregrounds, shift: colourIndex })}</g>`).join('');
 	const blurs = Array.from({ length: DEPTH_LAYERS }, (_, layer) => layer)
 		.filter((layer) => blurForLayer(layer) > 0)
 		.map((layer) => blurFilter({ id: blurId({ idPrefix, layer }), blur: blurForLayer(layer) }))
