@@ -9,11 +9,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { canvasSizeFor, generatePaletteArt, type DepthSettings, type PaletteVariant } from './generators.js';
-	import { aberrationFilter, aberrationOffset } from './aberration.js';
+	import { aberrationFilter, aberrationOffset, aberrationPixelsOf, type AberrationSetting } from './aberration.js';
 	import { splitLayers } from './depthLayers.js';
 	import { emojiChoice, usesEmojiArtwork } from './emojiStorm.js';
 	import { loadEmojiOutline } from './emojiOutline.js';
-	import { grainMarkup } from './grain.js';
+	import { grainMarkup, grainOptionsOf, type GrainSetting } from './grain.js';
 	import { PARALLAX_BLEED, parallaxOffset, pointerPosition } from './parallax.js';
 	import type { Palette } from './paletteUtils.js';
 	import type { PaletteTone } from './tones.js';
@@ -37,10 +37,10 @@
 		scrollProgress?: number;
 		/** Recolours the artwork: `pastel` (soft), `dark`, or `subtleDark` (soft and dark). The layout is the same in every tone. */
 		tone?: PaletteTone;
-		/** Adds a fine film grain over the art. It stays still when parallax slides the layers. */
-		grain?: boolean;
-		/** Splits red and blue slightly sideways, so edges show colour fringes. */
-		aberration?: boolean;
+		/** Adds a fine film grain over the art: `true` for the defaults, or `{ size, strength }` to tune it. It stays still when parallax slides the layers. */
+		grain?: GrainSetting;
+		/** Splits red and blue slightly sideways, so edges show colour fringes: `true` for the defaults, or `{ offset }` to tune it. */
+		aberration?: AberrationSetting;
 		/** Fixes a variant's sub-types (see `VARIANT_OPTIONS`), by option key, instead of leaving them to the seed. */
 		options?: Record<string, string>;
 		/** Content layered above the artwork. */
@@ -68,6 +68,8 @@
 
 	const uniqueId = $props.id();
 	const aberrationId = `pb-${uniqueId}-aberration`;
+	const grainSettings = $derived(grainOptionsOf(grain));
+	const aberrationPixels = $derived(aberrationPixelsOf(aberration));
 
 	/** Container size, bound below. Zero until measured, which gives the default 3:2 canvas. */
 	let containerWidth = $state(0);
@@ -176,17 +178,17 @@
 {/snippet}
 
 <div class="palette-background {className}" bind:this={container} bind:clientWidth={containerWidth} bind:clientHeight={containerHeight}>
-	{#if aberration && containerWidth}
+	{#if aberrationPixels !== undefined && containerWidth}
 		<!-- Only holds the filter; the fringing is applied to the wrapper below, in screen pixels. -->
 		<svg class="palette-background-filters" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
 			<defs>
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -- markup comes only from our own aberration module -->
-				{@html aberrationFilter({ id: aberrationId, offset: aberrationOffset() })}
+				{@html aberrationFilter({ id: aberrationId, offset: aberrationOffset(1, aberrationPixels) })}
 			</defs>
 		</svg>
 	{/if}
 	<!-- The filter sits on the whole stack, not on each sliding layer, so it runs on the composite and the fringes stay aligned. -->
-	<div class="palette-background-fringe" style:filter={aberration && containerWidth ? `url(#${aberrationId})` : undefined}>
+	<div class="palette-background-fringe" style:filter={aberrationPixels !== undefined && containerWidth ? `url(#${aberrationId})` : undefined}>
 		{#if parts}
 			<div class="palette-background-stack" class:following style:--parallax-x="{slide.x * pixelsPerUnit}px" style:--parallax-y="{slide.y * pixelsPerUnit}px">
 				{#if parts.base.trim()}
@@ -209,11 +211,11 @@
 			</svg>
 		{/if}
 	</div>
-	{#if grain && containerWidth && containerHeight}
+	{#if grainSettings && containerWidth && containerHeight}
 		<!-- Sized to the container in screen pixels, so the grain is the same fineness at every size and doesn't slide with the layers. -->
 		<svg class="palette-background-grain" viewBox="0 0 {containerWidth} {containerHeight}" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -- markup comes only from our own grain module -->
-			{@html grainMarkup({ id: `pb-${uniqueId}-grain`, width: containerWidth, height: containerHeight })}
+			{@html grainMarkup({ id: `pb-${uniqueId}-grain`, width: containerWidth, height: containerHeight, ...grainSettings })}
 		</svg>
 	{/if}
 	{#if children}

@@ -2,6 +2,8 @@
 	import { motion, reducedMotion } from 'svelte-akui';
 	import PaletteBackground from '#lib/components/PaletteBackground/PaletteBackground.svelte';
 	import type { Palette } from '#lib/components/PaletteBackground/paletteUtils.js';
+	import type { AberrationSetting } from '#lib/components/PaletteBackground/aberration.js';
+	import type { GrainSetting } from '#lib/components/PaletteBackground/grain.js';
 	import type { PaletteTone } from '#lib/components/PaletteBackground/tones.js';
 	import type { PaletteVariant } from '#lib/components/PaletteBackground/generators.js';
 	import { hold, wipe } from '#lib/transitions/wipe.js';
@@ -12,8 +14,8 @@
 		seed?: number;
 		tone?: PaletteTone;
 		gap?: number;
-		grain?: boolean;
-		aberration?: boolean;
+		grain?: GrainSetting;
+		aberration?: AberrationSetting;
 		/** Sub-types fixed by the user (see `VARIANT_OPTIONS`). */
 		options?: Record<string, string>;
 		/** Drives the parallax from a scroll position (0 to 1) instead of the cursor. */

@@ -1,9 +1,25 @@
-/** How far red and blue each move (in opposite directions), in screen or image pixels. A fixed size, so the fringe looks the same at any resolution. */
-const ABERRATION_PIXELS = 2;
+/** Default distance red and blue each move (in opposite directions), in screen or image pixels. A fixed size, so the fringe looks the same at any resolution. */
+export const ABERRATION_PIXELS = 2;
+
+export interface AberrationOptions {
+	/** How far red and blue each move, in output pixels (default `ABERRATION_PIXELS`). */
+	offset?: number;
+}
+
+/** Aberration as the library takes it: `true` for the defaults, `false` for none, or the settings to use. */
+export type AberrationSetting = boolean | AberrationOptions;
+
+/** The pixel offset to draw with (the default for `true`, clamped to 0 or more), or nothing if aberration is off. */
+export function aberrationPixelsOf(setting: AberrationSetting | undefined): number | undefined {
+	if (!setting) return undefined;
+	const { offset = ABERRATION_PIXELS } = setting === true ? {} : setting;
+	if (!Number.isFinite(offset)) return ABERRATION_PIXELS;
+	return offset > 0 ? offset : undefined;
+}
 
 /** The pixel distance in SVG units, given how many pixels one unit covers (1 when the SVG is already in pixels). */
-export const aberrationOffset = (pixelsPerUnit = 1) =>
-	Math.round((ABERRATION_PIXELS / pixelsPerUnit) * 100) / 100;
+export const aberrationOffset = (pixelsPerUnit = 1, pixels = ABERRATION_PIXELS) =>
+	Math.round((pixels / pixelsPerUnit) * 100) / 100;
 
 /** A matrix that keeps one colour channel (and the alpha) and zeroes the rest. */
 const keepChannel = (channel: 0 | 1 | 2) =>

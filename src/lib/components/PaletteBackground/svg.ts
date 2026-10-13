@@ -1,6 +1,6 @@
 import { canvasSizeFor, generatePaletteArt, type PaletteVariant } from './generators.js';
-import { aberrationFilter, aberrationOffset } from './aberration.js';
-import { grainMarkup } from './grain.js';
+import { aberrationFilter, aberrationOffset, aberrationPixelsOf, type AberrationSetting } from './aberration.js';
+import { grainMarkup, grainOptionsOf, type GrainSetting } from './grain.js';
 import { PARALLAX_BLEED } from './parallax.js';
 import type { Palette } from './paletteUtils.js';
 import type { PaletteTone } from './tones.js';
@@ -32,10 +32,10 @@ export interface PaletteSvgOptions {
 	bleed?: boolean;
 	/** Prefix for the `id`s inside the SVG (gradients, filters). Give each SVG on one page a different one. */
 	idPrefix?: string;
-	/** Adds a fine film grain over the art. */
-	grain?: boolean;
-	/** Splits red and blue slightly sideways, so edges show colour fringes. */
-	aberration?: boolean;
+	/** Adds a fine film grain over the art: `true` for the defaults, or `{ size, strength }` to tune it. */
+	grain?: GrainSetting;
+	/** Splits red and blue slightly sideways, so edges show colour fringes: `true` for the defaults, or `{ offset }` to tune it. */
+	aberration?: AberrationSetting;
 	/** Fixes a variant's sub-types (see `VARIANT_OPTIONS`) instead of leaving them to the seed. */
 	options?: Record<string, string>;
 }
@@ -76,11 +76,14 @@ export function paletteSvg({
 	});
 	// Drawn last, over the visible canvas only. `slice` scales by the larger ratio, so the grain is sized to match.
 	const pixelsPerUnit = Math.max(width / canvas.width, height / canvas.height);
-	const grainLayer = grain ? grainMarkup({ id: `${idPrefix}-grain`, x: margin, y: margin, width: canvas.width, height: canvas.height, pixelsPerUnit }) : '';
+	const grainSettings = grainOptionsOf(grain);
+	const grainLayer = grainSettings ? grainMarkup({ id: `${idPrefix}-grain`, x: margin, y: margin, width: canvas.width, height: canvas.height, pixelsPerUnit, ...grainSettings }) : '';
 	// Fringing goes on the art alone, so the grain stays neutral grey on top.
 	const aberrationId = `${idPrefix}-aberration`;
-	const fringed = aberration
-		? `<defs>${aberrationFilter({ id: aberrationId, offset: aberrationOffset(pixelsPerUnit) })}</defs><g filter="url(#${aberrationId})">${art}</g>`
-		: art;
+	const aberrationPixels = aberrationPixelsOf(aberration);
+	const fringed =
+		aberrationPixels === undefined
+			? art
+			: `<defs>${aberrationFilter({ id: aberrationId, offset: aberrationOffset(pixelsPerUnit, aberrationPixels) })}</defs><g filter="url(#${aberrationId})">${art}</g>`;
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${margin} ${margin} ${canvas.width} ${canvas.height}" preserveAspectRatio="xMidYMid slice">${fringed}${grainLayer}</svg>`;
 }

@@ -60,9 +60,9 @@ Returns a complete `<svg>` document as a string.
 - `seed`: number, default `1`.
 - `tone`: a `PaletteTone`, default `'original'`.
 - `gap`: borders between shapes, `0` to `0.4`, default `0`. Only `hexagons` uses it.
-- `grain`: adds a fine film grain over the art, default `false`. It only lightens, and is sized in output pixels, so it looks the same at any `width`.
+- `grain`: adds a fine film grain over the art, default `false`. `true` uses the defaults; `{ size, strength }` tunes it. `size` is a speck's width in output pixels (default `1.25`) and `strength` is `0` to `1` (default `0.05`; `0` is off). It only lightens, and is sized in output pixels, so it looks the same at any `width`.
 - `options`: fixes a variant's sub-types instead of leaving them to the seed, by key, for example `{ style: 'sunburst' }`. `artdeco` has `style`; `midcentury` has `shape` and `facing`; `neon` has `shape` (`circle`, `triangle`, `square`, `pentagon` or `hexagon`). `VARIANT_OPTIONS` lists the values. An unknown key or value is ignored.
-- `aberration`: chromatic aberration, default `false`. Red and blue each move 2 output pixels sideways, in opposite directions, so edges show colour fringes. The grain is not affected.
+- `aberration`: chromatic aberration, default `false`. `true` uses the defaults; `{ offset }` tunes it. Red and blue each move `offset` output pixels (default `2`; `0` is off) sideways, in opposite directions, so edges show colour fringes. The grain is not affected.
 - `width`, `height`: size of the SVG in pixels, default `1920` and `1080`.
 - `shape`: `{ width, height }`. The shape the art is laid out for, if different from `width` and `height`. The image crops to its own shape.
 - `bleed`: draws `PARALLAX_BLEED` extra on every side, then crops back. Set it to match a screen that has parallax on, as that changes the layout.
